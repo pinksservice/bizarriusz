@@ -1,4 +1,6 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
+import { useEffect } from "react";
+import { supabase } from "./lib/supabase";
 import { BizLayout } from "./layout/BizLayout";
 import Dzis from "./pages/Dzis";
 import Repertuar from "./pages/Repertuar";
@@ -9,9 +11,29 @@ import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
 import Profil from "./pages/Profil";
 
+const initialHash = window.location.hash;
+
+function AuthHandler() {
+  const [, setLocation] = useLocation();
+  useEffect(() => {
+    if (initialHash.includes("type=recovery")) {
+      setLocation("/reset-password");
+      return;
+    }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_UP") {
+        setLocation("/profil");
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [setLocation]);
+  return null;
+}
+
 export default function App() {
   return (
     <BizLayout>
+      <AuthHandler />
       <Switch>
         <Route path="/" component={Dzis} />
         <Route path="/repertuar" component={Repertuar} />
