@@ -5,6 +5,7 @@ import Repertuar from "./pages/Repertuar";
 import Galeria from "./pages/Galeria";
 import Grupy from "./pages/Grupy";
 import Ogloszenia from "./pages/Ogloszenia";
+import Login from "./pages/Login";
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
         <Route path="/galeria" component={Galeria} />
         <Route path="/grupy" component={Grupy} />
         <Route path="/ogloszenia" component={Ogloszenia} />
+        <Route path="/login" component={Login} />
         <Route>
           <div style={{ padding: 40, textAlign: "center", color: "#787878" }}>404 – Nie znaleziono</div>
         </Route>
