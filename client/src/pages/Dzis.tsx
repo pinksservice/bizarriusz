@@ -245,7 +245,7 @@ export default function Dzis() {
       <div style={{ background: B.card, border: `1.5px solid ${B.border}`, borderRadius: 22, padding: "16px 20px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 12 }}>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 13, color: B.gray }}>Wejście od ul. Poznańskiej 16 · 50 metrów od rogu za Piekarnią Lubaszka</div>
+            <div style={{ fontSize: 13, color: B.gray, lineHeight: 1.6 }}>Wejście od ul. Poznańskiej 16<br />50 metrów od rogu za Piekarnią Lubaszka</div>
           </div>
           <a
             href="https://maps.google.com/?q=Hoża+41,+Warszawa"
