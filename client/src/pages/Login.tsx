@@ -82,7 +82,7 @@ export default function Login() {
               onClick={async () => {
                 if (!email) { setError("Wpisz email żeby zresetować hasło."); return; }
                 setError(""); setLoading(true);
-                const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+                const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + "/reset-password" });
                 setLoading(false);
                 if (error) setError(error.message);
                 else setInfo("Wysłaliśmy link do resetu hasła na " + email);
