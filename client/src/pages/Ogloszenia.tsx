@@ -43,8 +43,8 @@ function NewAdForm({ onClose }: { onClose: () => void }) {
   const inp = { padding: "13px 16px", borderRadius: 14, border: `1.5px solid ${B.border}`, background: B.bg, fontSize: 15, color: B.ink, outline: "none", width: "100%", fontFamily: "inherit", boxSizing: "border-box" as const };
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 999, background: "rgba(0,0,0,.5)", display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: B.bg, borderRadius: "28px 28px 0 0", padding: 24, width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,.5)", display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{ background: B.bg, borderRadius: "28px 28px 0 0", padding: 24, width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto", paddingBottom: "calc(24px + env(safe-area-inset-bottom))" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <h2 style={{ fontSize: 22, fontWeight: 800, color: B.ink, margin: 0 }}>Nowe ogłoszenie</h2>
           <button onClick={onClose} style={{ background: B.grayLight, border: "none", borderRadius: "50%", width: 36, height: 36, fontSize: 18, cursor: "pointer", color: B.gray }}>×</button>
@@ -80,17 +80,15 @@ export default function Ogloszenia() {
   return (
     <div style={{ padding: 16 }}>
       {showForm && <NewAdForm onClose={() => setShowForm(false)} />}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-        <div>
-          <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: -1, marginBottom: 4, color: B.ink }}>Ogłoszenia</h1>
-          <p style={{ color: B.gray, margin: 0 }}>Szukasz kogoś? Tu jest najlepsze miejsce.</p>
-        </div>
-        {isAuthenticated && (
-          <button onClick={() => setShowForm(true)} style={{ flexShrink: 0, padding: "10px 18px", borderRadius: 24, background: B.orange, color: "white", border: "none", fontFamily: "inherit", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-            + Dodaj
-          </button>
-        )}
+      <div style={{ marginBottom: 20 }}>
+        <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: -1, marginBottom: 4, color: B.ink }}>Ogłoszenia</h1>
+        <p style={{ color: B.gray, margin: 0 }}>Szukasz kogoś? Tu jest najlepsze miejsce.</p>
       </div>
+      {isAuthenticated && (
+        <button onClick={() => setShowForm(true)} style={{ position: "fixed", bottom: "calc(80px + env(safe-area-inset-bottom))", right: 20, zIndex: 1050, width: 56, height: 56, borderRadius: "50%", background: B.orange, color: "white", border: "none", fontSize: 28, fontWeight: 300, cursor: "pointer", boxShadow: "0 4px 20px rgba(255,107,53,.5)", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
+          +
+        </button>
+      )}
       <div style={{ display: "flex", gap: 8, marginBottom: 18, overflowX: "auto", paddingBottom: 4 }}>
         {FILTERS.map(({ id, label }) => (
           <button key={id} onClick={() => setFilter(id)}
