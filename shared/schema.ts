@@ -89,3 +89,18 @@ export const bizPinnedMessage = pgTable("biz_pinned_message", {
 });
 
 export type BizPinnedMessage = typeof bizPinnedMessage.$inferSelect;
+
+// === PRIVATE MESSAGES ===
+export const privateMessages = pgTable("private_messages", {
+  id: serial("id").primaryKey(),
+  senderId: text("sender_id").notNull(),
+  senderName: text("sender_name").notNull(),
+  recipientId: text("recipient_id").notNull(),
+  recipientName: text("recipient_name").notNull(),
+  content: text("content").notNull(),
+  adId: integer("ad_id"),
+  adTitle: text("ad_title"),
+  isRead: boolean("is_read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+export type PrivateMessage = typeof privateMessages.$inferSelect;

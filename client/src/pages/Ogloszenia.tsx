@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { useAds } from "../hooks/use-ads";
 import { useAuth } from "../hooks/use-auth";
 import { apiRequest, queryClient } from "../lib/queryClient";
@@ -96,14 +97,13 @@ function ContactModal({ ad, onClose }: { ad: any; onClose: () => void }) {
 export default function Ogloszenia() {
   const [filter, setFilter] = useState("all");
   const [showForm, setShowForm] = useState(false);
-  const [contactAd, setContactAd] = useState<any>(null);
   const { isAuthenticated, user } = useAuth();
+  const [, navigate] = useLocation();
   const { data: ads = [], isLoading } = useAds({ category: filter === "all" ? undefined : filter });
 
   return (
     <div style={{ padding: 16 }}>
       {showForm && <NewAdForm onClose={() => setShowForm(false)} />}
-      {contactAd && <ContactModal ad={contactAd} onClose={() => setContactAd(null)} />}
       <div style={{ marginBottom: 20 }}>
         <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: -1, marginBottom: 4, color: B.ink }}>Ogłoszenia</h1>
         <p style={{ color: B.gray, margin: 0 }}>Szukasz kogoś? Tu jest najlepsze miejsce.</p>
@@ -147,7 +147,10 @@ export default function Ogloszenia() {
               </div>
               {isAuthenticated ? (
                 <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={() => setContactAd(ad)} style={{ flex: 1, padding: 12, borderRadius: 12, background: B.ink, color: "white", border: "none", fontFamily: "inherit", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                  <button
+                    onClick={() => navigate(`/wiadomosci?to=${ad.authorUuid}&name=${encodeURIComponent(ad.authorName || 'Użytkownik')}&adId=${ad.id}&adTitle=${encodeURIComponent(ad.title)}`)}
+                    style={{ flex: 1, padding: 12, borderRadius: 12, background: B.ink, color: "white", border: "none", fontFamily: "inherit", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
+                  >
                     ✉️ Napisz wiadomość
                   </button>
                   {ad.authorUuid === user?.id && (

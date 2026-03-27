@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { db } from "./db.js";
-import { shoutboxMessages, ads, groupMemberships } from "../shared/schema.js";
-import { desc, eq, and, sql } from "drizzle-orm";
+import { shoutboxMessages, ads, groupMemberships, privateMessages } from "../shared/schema.js";
+import { desc, eq, and, sql, or } from "drizzle-orm";
 import { isAuthenticated, isAdmin, isAdminEmail, supabaseAdmin } from "./auth.js";
 
 export function registerRoutes(app: Express) {
@@ -241,6 +241,121 @@ export function registerRoutes(app: Express) {
         .orderBy(desc(ads.createdAt))
         .limit(50);
       res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // === PRIVATE MESSAGES ===
+
+  // GET /api/messages/unread-count - must be before /api/messages/:partnerId
+  app.get("/api/messages/unread-count", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user.id;
+      const [{ count }] = await db.select({ count: sql<number>`count(*)::int` })
+        .from(privateMessages)
+        .where(and(eq(privateMessages.recipientId, userId), eq(privateMessages.isRead, false)));
+      res.json({ count });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // GET /api/messages - inbox: last message per conversation + unread count
+  app.get("/api/messages", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user.id;
+      const allMsgs = await db.select().from(privateMessages)
+        .where(or(eq(privateMessages.senderId, userId), eq(privateMessages.recipientId, userId)))
+        .orderBy(desc(privateMessages.createdAt));
+
+      // Group by conversation partner
+      const convMap = new Map<string, { partnerId: string; partnerName: string; lastMessage: string; lastTime: string; unreadCount: number }>();
+      for (const msg of allMsgs) {
+        const isOwn = msg.senderId === userId;
+        const partnerId = isOwn ? msg.recipientId : msg.senderId;
+        const partnerName = isOwn ? msg.recipientName : msg.senderName;
+        if (!convMap.has(partnerId)) {
+          convMap.set(partnerId, {
+            partnerId,
+            partnerName,
+            lastMessage: msg.content,
+            lastTime: msg.createdAt ? msg.createdAt.toISOString() : new Date().toISOString(),
+            unreadCount: 0,
+          });
+        }
+        if (!isOwn && !msg.isRead) {
+          const conv = convMap.get(partnerId)!;
+          conv.unreadCount += 1;
+        }
+      }
+
+      res.json(Array.from(convMap.values()));
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // GET /api/messages/:partnerId - full conversation
+  app.get("/api/messages/:partnerId", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user.id;
+      const { partnerId } = req.params;
+      const msgs = await db.select().from(privateMessages)
+        .where(
+          or(
+            and(eq(privateMessages.senderId, userId), eq(privateMessages.recipientId, partnerId)),
+            and(eq(privateMessages.senderId, partnerId), eq(privateMessages.recipientId, userId))
+          )
+        )
+        .orderBy(privateMessages.createdAt);
+      res.json(msgs);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // POST /api/messages/:partnerId - send message
+  app.post("/api/messages/:partnerId", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user.id;
+      const { partnerId } = req.params;
+      const { content, recipientName, adId, adTitle } = req.body;
+      if (!content?.trim()) return res.status(400).json({ message: "Treść wiadomości jest wymagana" });
+
+      let senderName = req.user.email?.split("@")[0] || "Anonim";
+      try {
+        const { data: { user: supaUser } } = await supabaseAdmin.auth.admin.getUserById(userId);
+        const meta = supaUser?.user_metadata || {};
+        senderName = meta.full_name || meta.name || senderName;
+      } catch (_) {}
+
+      const [msg] = await db.insert(privateMessages).values({
+        senderId: userId,
+        senderName,
+        recipientId: partnerId,
+        recipientName: recipientName || "Użytkownik",
+        content: content.trim(),
+        adId: adId || null,
+        adTitle: adTitle || null,
+        isRead: false,
+      }).returning();
+
+      res.status(201).json(msg);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // PATCH /api/messages/:partnerId/read - mark messages as read
+  app.patch("/api/messages/:partnerId/read", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user.id;
+      const { partnerId } = req.params;
+      await db.update(privateMessages)
+        .set({ isRead: true })
+        .where(and(eq(privateMessages.senderId, partnerId), eq(privateMessages.recipientId, userId), eq(privateMessages.isRead, false)));
+      res.json({ ok: true });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
