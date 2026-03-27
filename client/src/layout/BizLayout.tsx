@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "../hooks/use-auth";
 
@@ -91,6 +91,8 @@ function AgeGate({ onConfirm }: { onConfirm: () => void }) {
 
 export function BizLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
+
+  useEffect(() => { window.scrollTo(0, 0); }, [location]);
   const { isAuthenticated } = useAuth();
   const [ageConfirmed, setAgeConfirmed] = useState(() => {
     try { return localStorage.getItem("biz_age") === "1"; } catch { return false; }
