@@ -237,25 +237,31 @@ export default function Dzis() {
     <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ background: B.ink, borderRadius: 22, padding: "20px 24px", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", right: -40, top: -40, width: 180, height: 180, borderRadius: "50%", background: `radial-gradient(circle,${B.orange} 0%,transparent 70%)`, opacity: .2, pointerEvents: "none" }} />
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".15em", textTransform: "uppercase", color: B.orange, marginBottom: 10 }}>Warszawa · Hoża 41 · Codziennie</div>
+        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".15em", textTransform: "uppercase", color: B.orange, marginBottom: 10 }}>Warszawa · Centrum · Codziennie</div>
         <div style={{ fontSize: 28, fontWeight: 800, color: "white", letterSpacing: -1, lineHeight: 1 }}>Miejsce bez etykietek.</div>
         <div style={{ fontSize: 13, color: "rgba(255,255,255,.5)", marginTop: 8 }}>Kino dla dorosłych otwarte dla wszystkich orientacji.</div>
       </div>
       <TodayCard />
       <BizChat />
-      <div style={{ background: B.card, border: `1.5px solid ${B.border}`, borderRadius: 22, overflow: "hidden" }}>
-        <div style={{ background: B.grayLight, height: 110, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer", fontSize: 13, color: B.gray, fontWeight: 600 }}
-          onClick={() => window.open("https://maps.google.com/?q=Hoża+41,+Warszawa", "_blank")}>
-          <span style={{ fontSize: 24 }}>📍</span><span>Otwórz w Google Maps →</span>
-        </div>
-        <div style={{ padding: "16px 20px" }}>
-          <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>Hoża 41, Warszawa</div>
-          <div style={{ fontSize: 13, color: B.gray, marginBottom: 14 }}>Wejście od ul. Poznańskiej 16 · 50m od rogu za Piekarnią Lubaszka</div>
-          <a href="tel:+48793012890" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10, background: B.grayLight, borderRadius: 12, padding: "12px 16px" }}>
-            <span style={{ fontSize: 20 }}>📞</span>
-            <span style={{ fontWeight: 700, color: B.ink, fontSize: 15 }}>793 012 890</span>
+      <div style={{ background: B.card, border: `1.5px solid ${B.border}`, borderRadius: 22, padding: "16px 20px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 12 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13, color: B.gray }}>Wejście od ul. Poznańskiej 16 · 50m od rogu za Piekarnią Lubaszka</div>
+          </div>
+          <a
+            href="https://maps.google.com/?q=Hoża+41,+Warszawa"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 6, background: B.grayLight, borderRadius: 12, padding: "10px 14px", flexShrink: 0 }}
+          >
+            <span style={{ fontSize: 18 }}>📍</span>
+            <span style={{ fontWeight: 700, color: B.ink, fontSize: 13 }}>Mapa</span>
           </a>
         </div>
+        <a href="tel:+48793012890" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 10, background: B.grayLight, borderRadius: 12, padding: "12px 16px" }}>
+          <span style={{ fontSize: 20 }}>📞</span>
+          <span style={{ fontWeight: 700, color: B.ink, fontSize: 15 }}>793 012 890</span>
+        </a>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
         {SOCIALS.map(({ href, label, bg, svg }) => (
