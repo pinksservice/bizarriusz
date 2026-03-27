@@ -7,6 +7,7 @@ export const shoutboxMessages = pgTable("shoutbox_messages", {
   username: text("username").notNull(),
   avatarUrl: text("avatar_url"),
   content: text("content").notNull(),
+  source: text("source").default("gaypl"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -19,6 +20,7 @@ export const ads = pgTable("ads", {
   id: serial("id").primaryKey(),
   authorId: integer("author_id"),
   authorUuid: text("author_uuid"),
+  source: text("source").default("gaypl"),
   title: text("title").notNull(),
   description: text("description").notNull(),
   category: text("category").notNull(),

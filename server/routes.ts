@@ -16,6 +16,7 @@ export function registerRoutes(app: Express) {
     try {
       const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
       const msgs = await db.select().from(shoutboxMessages)
+        .where(eq(shoutboxMessages.source, "bizarriusz"))
         .orderBy(desc(shoutboxMessages.createdAt))
         .limit(limit);
       res.json(msgs.reverse());
@@ -44,6 +45,7 @@ export function registerRoutes(app: Express) {
         username,
         avatarUrl: null,
         content: content.trim(),
+        source: "bizarriusz",
       }).returning();
 
       res.status(201).json(msg);
@@ -63,6 +65,7 @@ export function registerRoutes(app: Express) {
       const [ad] = await db.insert(ads).values({
         authorId: null,
         authorUuid: req.user.id,
+        source: "bizarriusz",
         title: title.trim(),
         description: description.trim(),
         category: category.trim(),
@@ -93,7 +96,7 @@ export function registerRoutes(app: Express) {
   app.get("/api/ads", async (req: Request, res: Response) => {
     try {
       const category = req.query.category as string | undefined;
-      const conditions = [eq(ads.status, "active")];
+      const conditions = [eq(ads.status, "active"), eq(ads.source, "bizarriusz")];
       if (category) conditions.push(eq(ads.category, category));
 
       const result = await db.select().from(ads)
