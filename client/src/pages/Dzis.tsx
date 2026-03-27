@@ -97,7 +97,7 @@ function BizChat() {
   const [tab, setTab] = useState(0);
   const [content, setContent] = useState("");
   const [sendError, setSendError] = useState("");
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAdmin } = useAuth();
   const endRef = useRef<HTMLDivElement>(null);
 
   const { data: messages = [] } = useQuery<ShoutboxMessage[]>({
@@ -118,6 +118,28 @@ function BizChat() {
     onError: (err: any) => setSendError(err.message || "Błąd wysyłania"),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/admin/shoutbox/${id}`);
+      return res.json();
+    },
+    onSuccess: (_, id) => {
+      queryClient.setQueryData<ShoutboxMessage[]>(["/api/shoutbox"], (old = []) => old.filter(m => m.id !== id));
+    },
+  });
+
+  const pinMutation = useMutation({
+    mutationFn: async ({ id, pinned }: { id: number; pinned: boolean }) => {
+      const res = await apiRequest("PATCH", `/api/admin/shoutbox/${id}/pin`, { pinned });
+      return res.json();
+    },
+    onSuccess: (_, { id, pinned }) => {
+      queryClient.setQueryData<ShoutboxMessage[]>(["/api/shoutbox"], (old = []) =>
+        old.map(m => ({ ...m, isPinned: pinned ? m.id === id : false }))
+      );
+    },
+  });
+
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
   const handleSend = () => {
@@ -127,26 +149,61 @@ function BizChat() {
     setContent("");
   };
 
+  const pinned = messages.find(m => m.isPinned);
+
   return (
     <div style={{ background: B.card, border: `1.5px solid ${B.border}`, borderRadius: 22, overflow: "hidden" }}>
       <div style={{ display: "flex", borderBottom: `1px solid ${B.border}`, padding: "0 12px", overflowX: "auto" as const }}>
         {CHAT_TABS.map((t, i) => (
           <button key={t} onClick={() => setTab(i)}
-            style={{ padding: "12px 14px", fontSize: 13, fontWeight: 600, color: tab === i ? B.orange : B.gray, cursor: "pointer", whiteSpace: "nowrap" as const, borderBottom: `2px solid ${tab === i ? B.orange : "transparent"}`, marginBottom: -1, background: "none", border: "none", borderBottom: `2px solid ${tab === i ? B.orange : "transparent"}` }}>
+            style={{ padding: "12px 14px", fontSize: 13, fontWeight: 600, color: tab === i ? B.orange : B.gray, cursor: "pointer", whiteSpace: "nowrap" as const, background: "none", border: "none", borderBottom: `2px solid ${tab === i ? B.orange : "transparent"}`, marginBottom: -1 }}>
             {t}
           </button>
         ))}
       </div>
+
+      {tab === 0 && pinned && (
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 8, margin: "10px 14px 0", padding: "10px 14px", background: `${B.orange}18`, border: `1.5px solid ${B.orange}40`, borderRadius: 14 }}>
+          <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>📌</span>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: B.orange, marginBottom: 2 }}>{pinned.username}</div>
+            <div style={{ fontSize: 13, color: B.ink, wordBreak: "break-word" as const }}>{pinned.content}</div>
+          </div>
+          {isAdmin && (
+            <button onClick={() => pinMutation.mutate({ id: pinned.id, pinned: false })}
+              style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: B.gray, fontSize: 16, flexShrink: 0, padding: 0 }}>
+              ✕
+            </button>
+          )}
+        </div>
+      )}
+
       <div style={{ padding: 14, display: "flex", flexDirection: "column" as const, gap: 10, minHeight: 160, maxHeight: 260, overflowY: "auto" as const }}>
-        {tab === 0 ? (messages as any[]).slice(-20).map((msg: any) => (
+        {tab === 0 ? messages.slice(-20).map((msg) => (
           <div key={msg.id} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
             <div style={{ width: 32, height: 32, borderRadius: 10, background: B.grayLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
               {(msg.username || "?")[0].toUpperCase()}
             </div>
-            <div>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: B.gray, marginBottom: 3 }}>{msg.username}</div>
-              <div style={{ background: B.grayLight, borderRadius: "16px 16px 16px 4px", padding: "10px 14px", fontSize: 14, color: B.ink }}>{msg.content}</div>
+              <div style={{ background: B.grayLight, borderRadius: "16px 16px 16px 4px", padding: "10px 14px", fontSize: 14, color: B.ink, wordBreak: "break-word" as const }}>{msg.content}</div>
             </div>
+            {isAdmin && (
+              <div style={{ display: "flex", flexDirection: "column" as const, gap: 4, flexShrink: 0 }}>
+                <button
+                  onClick={() => pinMutation.mutate({ id: msg.id, pinned: !msg.isPinned })}
+                  title={msg.isPinned ? "Odepnij" : "Przypnij"}
+                  style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, opacity: msg.isPinned ? 1 : 0.4, padding: 2 }}>
+                  📌
+                </button>
+                <button
+                  onClick={() => deleteMutation.mutate(msg.id)}
+                  title="Usuń"
+                  style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, opacity: 0.5, padding: 2 }}>
+                  🗑️
+                </button>
+              </div>
+            )}
           </div>
         )) : (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flex: 1, color: B.gray, fontSize: 13 }}>Wkrótce dostępne…</div>

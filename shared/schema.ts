@@ -8,6 +8,7 @@ export const shoutboxMessages = pgTable("shoutbox_messages", {
   avatarUrl: text("avatar_url"),
   content: text("content").notNull(),
   source: text("source").default("gaypl"),
+  isPinned: boolean("is_pinned").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

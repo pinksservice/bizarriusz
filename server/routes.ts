@@ -2,13 +2,13 @@ import type { Express, Request, Response } from "express";
 import { db } from "./db.js";
 import { shoutboxMessages, ads } from "../shared/schema.js";
 import { desc, eq, and } from "drizzle-orm";
-import { isAuthenticated, supabaseAdmin } from "./auth.js";
+import { isAuthenticated, isAdmin, isAdminEmail, supabaseAdmin } from "./auth.js";
 
 export function registerRoutes(app: Express) {
 
   // === AUTH ===
   app.get("/api/auth/user", isAuthenticated, (req: any, res: Response) => {
-    res.json({ id: req.user.id, email: req.user.email });
+    res.json({ id: req.user.id, email: req.user.email, isAdmin: isAdminEmail(req.user.email) });
   });
 
   // === SHOUTBOX ===
@@ -87,6 +87,42 @@ export function registerRoutes(app: Express) {
       if (!ad) return res.status(404).json({ message: "Nie znaleziono" });
       if (ad.authorUuid !== req.user.id) return res.status(403).json({ message: "Brak dostępu" });
       await db.delete(ads).where(eq(ads.id, id));
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // === ADMIN: SHOUTBOX ===
+  app.get("/api/admin/shoutbox", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    try {
+      const msgs = await db.select().from(shoutboxMessages)
+        .where(eq(shoutboxMessages.source, "bizarriusz"))
+        .orderBy(desc(shoutboxMessages.createdAt))
+        .limit(100);
+      res.json(msgs);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/admin/shoutbox/:id", isAuthenticated, isAdmin, async (req: any, res: Response) => {
+    try {
+      await db.delete(shoutboxMessages).where(eq(shoutboxMessages.id, parseInt(req.params.id)));
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/admin/shoutbox/:id/pin", isAuthenticated, isAdmin, async (req: any, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const pinned = Boolean(req.body.pinned);
+      if (pinned) {
+        await db.update(shoutboxMessages).set({ isPinned: false }).where(eq(shoutboxMessages.source, "bizarriusz"));
+      }
+      await db.update(shoutboxMessages).set({ isPinned: pinned }).where(eq(shoutboxMessages.id, id));
       res.json({ ok: true });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
