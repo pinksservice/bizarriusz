@@ -62,6 +62,7 @@ export function registerRoutes(app: Express) {
       }
       const [ad] = await db.insert(ads).values({
         authorId: null,
+        authorUuid: req.user.id,
         title: title.trim(),
         description: description.trim(),
         category: category.trim(),
@@ -73,6 +74,19 @@ export function registerRoutes(app: Express) {
     } catch (err: any) {
       console.error("[POST /api/ads] error:", err);
       res.status(500).json({ message: err.message, detail: err.detail ?? null });
+    }
+  });
+
+  app.delete("/api/ads/:id", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const [ad] = await db.select().from(ads).where(eq(ads.id, id)).limit(1);
+      if (!ad) return res.status(404).json({ message: "Nie znaleziono" });
+      if (ad.authorUuid !== req.user.id) return res.status(403).json({ message: "Brak dostępu" });
+      await db.delete(ads).where(eq(ads.id, id));
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
     }
   });
 

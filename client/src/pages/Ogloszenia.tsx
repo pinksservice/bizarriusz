@@ -71,15 +71,39 @@ function NewAdForm({ onClose }: { onClose: () => void }) {
   );
 }
 
+function ContactModal({ ad, onClose }: { ad: any; onClose: () => void }) {
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{ background: B.bg, borderRadius: 24, padding: 28, width: "100%", maxWidth: 400 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <h2 style={{ fontSize: 20, fontWeight: 800, color: B.ink, margin: 0 }}>Kontakt</h2>
+          <button onClick={onClose} style={{ background: B.grayLight, border: "none", borderRadius: "50%", width: 34, height: 34, fontSize: 18, cursor: "pointer", color: B.gray }}>×</button>
+        </div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: B.ink, marginBottom: 8 }}>{ad.title}</div>
+        {ad.contactInfo ? (
+          <div style={{ background: B.grayLight, borderRadius: 14, padding: "14px 16px", fontSize: 15, color: B.ink, wordBreak: "break-all" as const }}>
+            {ad.contactInfo}
+          </div>
+        ) : (
+          <p style={{ color: B.gray, fontSize: 14 }}>Autor nie podał danych kontaktowych. Napisz do niego na czacie ogólnym.</p>
+        )}
+        <button onClick={onClose} style={{ marginTop: 20, width: "100%", padding: 14, borderRadius: 14, background: B.ink, color: "white", border: "none", fontFamily: "inherit", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>Zamknij</button>
+      </div>
+    </div>
+  );
+}
+
 export default function Ogloszenia() {
   const [filter, setFilter] = useState("all");
   const [showForm, setShowForm] = useState(false);
-  const { isAuthenticated } = useAuth();
+  const [contactAd, setContactAd] = useState<any>(null);
+  const { isAuthenticated, user } = useAuth();
   const { data: ads = [], isLoading } = useAds({ category: filter === "all" ? undefined : filter });
 
   return (
     <div style={{ padding: 16 }}>
       {showForm && <NewAdForm onClose={() => setShowForm(false)} />}
+      {contactAd && <ContactModal ad={contactAd} onClose={() => setContactAd(null)} />}
       <div style={{ marginBottom: 20 }}>
         <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: -1, marginBottom: 4, color: B.ink }}>Ogłoszenia</h1>
         <p style={{ color: B.gray, margin: 0 }}>Szukasz kogoś? Tu jest najlepsze miejsce.</p>
@@ -122,9 +146,22 @@ export default function Ogloszenia() {
                 {ad.location && `📍 ${ad.location} · `}⏰ {timeAgo(ad.createdAt)}
               </div>
               {isAuthenticated ? (
-                <button style={{ width: "100%", padding: 12, borderRadius: 12, background: B.ink, color: "white", border: "none", fontFamily: "inherit", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-                  ✉️ Napisz wiadomość
-                </button>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={() => setContactAd(ad)} style={{ flex: 1, padding: 12, borderRadius: 12, background: B.ink, color: "white", border: "none", fontFamily: "inherit", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                    ✉️ Napisz wiadomość
+                  </button>
+                  {ad.authorUuid === user?.id && (
+                    <button
+                      onClick={async () => {
+                        if (!confirm("Usunąć to ogłoszenie?")) return;
+                        await apiRequest("DELETE", `/api/ads/${ad.id}`);
+                        queryClient.invalidateQueries({ queryKey: ["/api/ads"] });
+                      }}
+                      style={{ padding: 12, borderRadius: 12, background: "#FFF0EE", border: "1.5px solid #FFCDC7", color: "#E53E3E", fontFamily: "inherit", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                      🗑️
+                    </button>
+                  )}
+                </div>
               ) : (
                 <a href="/login" style={{ display: "block", textDecoration: "none" }}>
                   <button style={{ width: "100%", padding: 12, borderRadius: 12, background: B.grayLight, color: B.gray, border: "none", fontFamily: "inherit", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>

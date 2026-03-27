@@ -18,6 +18,7 @@ export const insertShoutboxMessageSchema = createInsertSchema(shoutboxMessages).
 export const ads = pgTable("ads", {
   id: serial("id").primaryKey(),
   authorId: integer("author_id"),
+  authorUuid: text("author_uuid"),
   title: text("title").notNull(),
   description: text("description").notNull(),
   category: text("category").notNull(),
