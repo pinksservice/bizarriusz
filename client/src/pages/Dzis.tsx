@@ -96,17 +96,26 @@ function TodayCard() {
 function BizChat() {
   const [tab, setTab] = useState(0);
   const [content, setContent] = useState("");
+  const [sendError, setSendError] = useState("");
   const { isAuthenticated } = useAuth();
   const endRef = useRef<HTMLDivElement>(null);
 
   const { data: messages = [] } = useQuery<ShoutboxMessage[]>({
     queryKey: ["/api/shoutbox"],
-    refetchInterval: 5000,
+    refetchInterval: 3000,
+    staleTime: 0,
   });
 
   const send = useMutation({
-    mutationFn: (text: string) => apiRequest("POST", "/api/shoutbox", { content: text }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/shoutbox"] }),
+    mutationFn: async (text: string) => {
+      const res = await apiRequest("POST", "/api/shoutbox", { content: text });
+      return res.json();
+    },
+    onSuccess: (newMsg) => {
+      queryClient.setQueryData<ShoutboxMessage[]>(["/api/shoutbox"], (old = []) => [...old, newMsg]);
+      setSendError("");
+    },
+    onError: (err: any) => setSendError(err.message || "Błąd wysyłania"),
   });
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
@@ -144,6 +153,7 @@ function BizChat() {
         )}
         <div ref={endRef} />
       </div>
+      {sendError && <div style={{ padding: "6px 14px", fontSize: 12, color: "#E53E3E", borderTop: `1px solid ${B.border}` }}>{sendError}</div>}
       <div style={{ borderTop: `1px solid ${B.border}`, padding: "10px 14px", display: "flex", gap: 8 }}>
         <input value={content} onChange={e => setContent(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSend()}
           placeholder={isAuthenticated ? "Napisz wiadomość..." : "Zaloguj się, aby pisać"}
