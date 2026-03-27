@@ -109,7 +109,7 @@ export default function Ogloszenia() {
         <p style={{ color: B.gray, margin: 0 }}>Szukasz kogoś? Tu jest najlepsze miejsce.</p>
       </div>
       {isAuthenticated && (
-        <button onClick={() => setShowForm(true)} style={{ position: "fixed", bottom: "calc(80px + env(safe-area-inset-bottom))", right: 20, zIndex: 1050, width: 56, height: 56, borderRadius: "50%", background: B.orange, color: "white", border: "none", fontSize: 28, fontWeight: 300, cursor: "pointer", boxShadow: "0 4px 20px rgba(255,107,53,.5)", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
+        <button onClick={() => setShowForm(true)} style={{ position: "fixed", bottom: "calc(80px + env(safe-area-inset-bottom))", right: 20, zIndex: 1050, width: 56, height: 56, borderRadius: "50%", background: B.orange, color: "white", border: "none", fontSize: 28, fontWeight: 300, cursor: "pointer", boxShadow: "0 4px 20px rgba(255,200,36,.5)", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
           +
         </button>
       )}
