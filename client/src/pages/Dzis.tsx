@@ -83,7 +83,7 @@ function TodayCard() {
           <div style={{ fontSize: 15, fontWeight: 800, color: "white", lineHeight: 1.1 }}>od {event.price}</div>
         </div>
         {event.ladies && (
-          <div style={{ background: "rgba(52,199,89,.4)", borderRadius: 14, padding: "12px 8px", textAlign: "center" as const }}>
+          <div style={{ background: "rgba(0,0,0,.15)", borderRadius: 14, padding: "12px 8px", textAlign: "center" as const }}>
             <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase" as const, color: "rgba(255,255,255,.8)", marginBottom: 5 }}>Panie</div>
             <div style={{ fontSize: 15, fontWeight: 800, color: "white", lineHeight: 1.1 }}>gratis</div>
           </div>
