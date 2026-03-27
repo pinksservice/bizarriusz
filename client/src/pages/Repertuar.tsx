@@ -66,8 +66,8 @@ export default function Repertuar() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         {/* Weekday */}
         <div style={{ background: B.card, border: `1.5px solid ${B.border}`, borderRadius: 22, overflow: "hidden" }}>
-          <div style={{ padding: "14px 20px", fontWeight: 700, fontSize: 14, background: B.grayLight, display: "flex", alignItems: "center", gap: 8 }}>
-            📅 Nd – Czw
+          <div style={{ padding: "14px 20px", fontWeight: 700, fontSize: 14, background: B.grayLight }}>
+            Niedziela – Czwartek
           </div>
           {PRICE_WD.map(({ label, val, green }) => (
             <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "11px 20px", borderTop: `1px solid ${B.border}`, fontSize: 13 }}>
@@ -78,8 +78,8 @@ export default function Repertuar() {
         </div>
         {/* Weekend */}
         <div style={{ background: B.card, border: `1.5px solid ${B.border}`, borderRadius: 22, overflow: "hidden" }}>
-          <div style={{ padding: "14px 20px", fontWeight: 700, fontSize: 14, background: B.orange, color: "white", display: "flex", alignItems: "center", gap: 8 }}>
-            🔥 Pt &amp; Sob
+          <div style={{ padding: "14px 20px", fontWeight: 700, fontSize: 14, background: B.orange, color: "white" }}>
+            Piątek i Sobota
           </div>
           {PRICE_WE.map(({ label, val, green }) => (
             <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "11px 20px", borderTop: `1px solid ${B.border}`, fontSize: 13 }}>
