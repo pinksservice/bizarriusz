@@ -67,7 +67,6 @@ function TodayCard() {
   const cols = event.ladies ? 3 : 2;
   return (
     <div style={{ background: B.orange, borderRadius: 22, padding: 22, position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", right: -30, bottom: -30, width: 140, height: 140, borderRadius: "50%", background: "rgba(0,0,0,.1)", pointerEvents: "none" }} />
       <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: ".15em", textTransform: "uppercase" as const, color: "rgba(255,255,255,.75)", marginBottom: 10 }}>
         Dziś · {DAYS[day]}
       </div>
@@ -83,7 +82,7 @@ function TodayCard() {
           <div style={{ fontSize: 15, fontWeight: 800, color: "white", lineHeight: 1.1 }}>od {event.price}</div>
         </div>
         {event.ladies && (
-          <div style={{ background: "rgba(0,0,0,.15)", borderRadius: 14, padding: "12px 8px", textAlign: "center" as const }}>
+          <div style={{ background: "rgba(52,199,89,.4)", borderRadius: 14, padding: "12px 8px", textAlign: "center" as const }}>
             <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase" as const, color: "rgba(255,255,255,.8)", marginBottom: 5 }}>Panie</div>
             <div style={{ fontSize: 15, fontWeight: 800, color: "white", lineHeight: 1.1 }}>gratis</div>
           </div>
