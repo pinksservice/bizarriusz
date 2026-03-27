@@ -31,15 +31,18 @@ export function registerRoutes(app: Express) {
         return res.status(400).json({ message: "Invalid content" });
       }
 
-      // Get display name from Supabase
-      const { data: { user } } = await supabaseAdmin.auth.admin.getUserById(req.user.id);
-      const meta = user?.user_metadata || {};
-      const username = meta.full_name || meta.name || req.user.email?.split("@")[0] || "Anonim";
+      // Get display name from Supabase (optional – fallback to email prefix)
+      let username = req.user.email?.split("@")[0] || "Anonim";
+      try {
+        const { data: { user: supaUser } } = await supabaseAdmin.auth.admin.getUserById(req.user.id);
+        const meta = supaUser?.user_metadata || {};
+        username = meta.full_name || meta.name || username;
+      } catch (_) { /* use fallback */ }
 
       const [msg] = await db.insert(shoutboxMessages).values({
         userId: req.user.id,
         username,
-        avatarUrl: meta.avatar_url ?? null,
+        avatarUrl: null,
         content: content.trim(),
       }).returning();
 
