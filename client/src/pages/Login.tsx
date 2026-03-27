@@ -21,7 +21,7 @@ export default function Login() {
       if (mode === "login") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate("/");
+        window.location.href = "/";
       } else {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) {
