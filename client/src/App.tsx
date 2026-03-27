@@ -7,6 +7,7 @@ import Grupy from "./pages/Grupy";
 import Ogloszenia from "./pages/Ogloszenia";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
+import Profil from "./pages/Profil";
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/ogloszenia" component={Ogloszenia} />
         <Route path="/login" component={Login} />
         <Route path="/reset-password" component={ResetPassword} />
+        <Route path="/profil" component={Profil} />
         <Route>
           <div style={{ padding: 40, textAlign: "center", color: "#787878" }}>404 – Nie znaleziono</div>
         </Route>
