@@ -378,17 +378,23 @@ export function registerRoutes(app: Express) {
       if (!content?.trim() && !imageUrl) return res.status(400).json({ message: "Treść wiadomości jest wymagana" });
 
       let senderName = req.user.email?.split("@")[0] || "Anonim";
+      let recipientDisplayName = "Użytkownik";
       try {
         const { data: { user: supaUser } } = await supabaseAdmin.auth.admin.getUserById(userId);
         const meta = supaUser?.user_metadata || {};
         senderName = meta.full_name || meta.name || senderName;
+      } catch (_) {}
+      try {
+        const { data: { user: recipientUser } } = await supabaseAdmin.auth.admin.getUserById(partnerId);
+        const meta = recipientUser?.user_metadata || {};
+        recipientDisplayName = meta.full_name || meta.name || recipientUser?.email?.split("@")[0] || recipientDisplayName;
       } catch (_) {}
 
       const [msg] = await db.insert(privateMessages).values({
         senderId: userId,
         senderName,
         recipientId: partnerId,
-        recipientName: recipientName || "Użytkownik",
+        recipientName: recipientDisplayName,
         content: content?.trim() || "",
         adId: adId || null,
         adTitle: adTitle || null,
