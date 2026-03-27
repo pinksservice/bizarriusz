@@ -48,7 +48,8 @@ export function registerRoutes(app: Express) {
 
       res.status(201).json(msg);
     } catch (err: any) {
-      res.status(500).json({ message: err.message });
+      console.error("[POST /api/shoutbox] error:", err);
+      res.status(500).json({ message: err.message, detail: err.detail ?? null });
     }
   });
 

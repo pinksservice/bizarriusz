@@ -24,6 +24,15 @@ if (isProd) {
   app.get("/", (_req, res) => res.send("API running. Frontend: run `vite` separately."));
 }
 
-app.listen(PORT, "0.0.0.0", () => {
+app.listen(PORT, "0.0.0.0", async () => {
   console.log(`Bizarriusz server running on port ${PORT} [${isProd ? "production" : "development"}]`);
+  try {
+    const { pool } = await import("./db.js");
+    const client = await pool.connect();
+    await client.query("SELECT 1");
+    client.release();
+    console.log("✓ Database connection OK");
+  } catch (err: any) {
+    console.error("✗ Database connection FAILED:", err.message);
+  }
 });
