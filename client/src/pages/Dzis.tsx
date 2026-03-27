@@ -140,7 +140,14 @@ function BizChat() {
     },
   });
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  const prevLengthRef = useRef(0);
+  useEffect(() => {
+    const len = messages.length;
+    if (prevLengthRef.current > 0 && len > prevLengthRef.current) {
+      endRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+    prevLengthRef.current = len;
+  }, [messages]);
 
   const handleSend = () => {
     const t = content.trim();
