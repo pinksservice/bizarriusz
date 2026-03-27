@@ -9,6 +9,14 @@ export const shoutboxMessages = pgTable("shoutbox_messages", {
   content: text("content").notNull(),
   source: text("source").default("gaypl"),
   isPinned: boolean("is_pinned").default(false),
+  groupSlug: text("group_slug"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const groupMemberships = pgTable("group_memberships", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  groupSlug: text("group_slug").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

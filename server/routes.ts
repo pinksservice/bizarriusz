@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { db } from "./db.js";
-import { shoutboxMessages, ads } from "../shared/schema.js";
-import { desc, eq, and } from "drizzle-orm";
+import { shoutboxMessages, ads, groupMemberships } from "../shared/schema.js";
+import { desc, eq, and, sql } from "drizzle-orm";
 import { isAuthenticated, isAdmin, isAdminEmail, supabaseAdmin } from "./auth.js";
 
 export function registerRoutes(app: Express) {
@@ -88,6 +88,107 @@ export function registerRoutes(app: Express) {
       if (ad.authorUuid !== req.user.id) return res.status(403).json({ message: "Brak dostępu" });
       await db.delete(ads).where(eq(ads.id, id));
       res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // === GROUPS ===
+  app.get("/api/groups/:slug/info", async (req: any, res: Response) => {
+    try {
+      const { slug } = req.params;
+      const token = req.headers.authorization?.replace("Bearer ", "");
+      let isMember = false;
+      let userId: string | null = null;
+
+      if (token) {
+        try {
+          const { data: { user } } = await supabaseAdmin.auth.getUser(token);
+          if (user) {
+            userId = user.id;
+            const [m] = await db.select().from(groupMemberships)
+              .where(and(eq(groupMemberships.userId, user.id), eq(groupMemberships.groupSlug, slug)))
+              .limit(1);
+            isMember = !!m;
+          }
+        } catch (_) {}
+      }
+
+      const [{ count }] = await db.select({ count: sql<number>`count(*)::int` })
+        .from(groupMemberships).where(eq(groupMemberships.groupSlug, slug));
+
+      res.json({ isMember, memberCount: count });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/groups/:slug/join", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const { slug } = req.params;
+      await db.insert(groupMemberships).values({ userId: req.user.id, groupSlug: slug })
+        .onConflictDoNothing();
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/groups/:slug/leave", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const { slug } = req.params;
+      await db.delete(groupMemberships)
+        .where(and(eq(groupMemberships.userId, req.user.id), eq(groupMemberships.groupSlug, slug)));
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/groups/:slug/messages", async (req: Request, res: Response) => {
+    try {
+      const { slug } = req.params;
+      const msgs = await db.select().from(shoutboxMessages)
+        .where(and(eq(shoutboxMessages.source, "bizarriusz"), eq(shoutboxMessages.groupSlug, slug)))
+        .orderBy(desc(shoutboxMessages.createdAt))
+        .limit(50);
+      res.json(msgs.reverse());
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/groups/:slug/messages", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const { slug } = req.params;
+      const { content } = req.body;
+      if (!content?.trim() || content.trim().length > 500) {
+        return res.status(400).json({ message: "Invalid content" });
+      }
+
+      // Must be member
+      const [membership] = await db.select().from(groupMemberships)
+        .where(and(eq(groupMemberships.userId, req.user.id), eq(groupMemberships.groupSlug, slug)))
+        .limit(1);
+      if (!membership) return res.status(403).json({ message: "Musisz być członkiem grupy" });
+
+      let username = req.user.email?.split("@")[0] || "Anonim";
+      try {
+        const { data: { user: supaUser } } = await supabaseAdmin.auth.admin.getUserById(req.user.id);
+        const meta = supaUser?.user_metadata || {};
+        username = meta.full_name || meta.name || username;
+      } catch (_) {}
+
+      const [msg] = await db.insert(shoutboxMessages).values({
+        userId: req.user.id,
+        username,
+        avatarUrl: null,
+        content: content.trim(),
+        source: "bizarriusz",
+        groupSlug: slug,
+      }).returning();
+
+      res.status(201).json(msg);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
