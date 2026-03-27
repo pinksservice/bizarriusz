@@ -70,7 +70,8 @@ export function registerRoutes(app: Express) {
       }).returning();
       res.status(201).json(ad);
     } catch (err: any) {
-      res.status(500).json({ message: err.message });
+      console.error("[POST /api/ads] error:", err);
+      res.status(500).json({ message: err.message, detail: err.detail ?? null });
     }
   });
 
