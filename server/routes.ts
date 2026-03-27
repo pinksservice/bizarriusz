@@ -50,6 +50,27 @@ export function registerRoutes(app: Express) {
   });
 
   // === ADS ===
+  app.post("/api/ads", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const { title, description, category, location, contactInfo } = req.body;
+      if (!title?.trim() || !description?.trim() || !category?.trim()) {
+        return res.status(400).json({ message: "Wypełnij wymagane pola" });
+      }
+      const [ad] = await db.insert(ads).values({
+        authorId: null,
+        title: title.trim(),
+        description: description.trim(),
+        category: category.trim(),
+        location: location?.trim() || null,
+        contactInfo: contactInfo?.trim() || null,
+        status: "active",
+      }).returning();
+      res.status(201).json(ad);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   app.get("/api/ads", async (req: Request, res: Response) => {
     try {
       const category = req.query.category as string | undefined;
