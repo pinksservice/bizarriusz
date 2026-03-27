@@ -44,7 +44,7 @@ function NewAdForm({ onClose }: { onClose: () => void }) {
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,.5)", display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ background: B.bg, borderRadius: "28px 28px 0 0", padding: 24, width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto", paddingBottom: "calc(24px + env(safe-area-inset-bottom))" }}>
+      <div style={{ background: B.bg, borderRadius: "28px 28px 0 0", padding: 24, paddingBottom: 32, width: "100%", maxWidth: 520, maxHeight: "calc(90vh - 80px)", overflowY: "auto", marginBottom: 80 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <h2 style={{ fontSize: 22, fontWeight: 800, color: B.ink, margin: 0 }}>Nowe ogłoszenie</h2>
           <button onClick={onClose} style={{ background: B.grayLight, border: "none", borderRadius: "50%", width: 36, height: 36, fontSize: 18, cursor: "pointer", color: B.gray }}>×</button>
