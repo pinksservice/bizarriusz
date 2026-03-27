@@ -24,8 +24,17 @@ export default function Login() {
         navigate("/");
       } else {
         const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        setInfo("Sprawdź skrzynkę email – wysłaliśmy link aktywacyjny.");
+        if (error) {
+          if (error.message.toLowerCase().includes("already registered")) {
+            setMode("login");
+            setError("Ten email jest już zarejestrowany. Zaloguj się.");
+          } else {
+            throw error;
+          }
+          return;
+        }
+        setInfo("Konto założone! Możesz się teraz zalogować.");
+        setMode("login");
       }
     } catch (err: any) {
       setError(err.message || "Wystąpił błąd");
@@ -67,6 +76,22 @@ export default function Login() {
             required
             style={{ padding: "14px 16px", borderRadius: 14, border: `1.5px solid ${B.border}`, background: B.bg, fontSize: 15, color: B.ink, outline: "none" }}
           />
+          {mode === "login" && (
+            <button
+              type="button"
+              onClick={async () => {
+                if (!email) { setError("Wpisz email żeby zresetować hasło."); return; }
+                setError(""); setLoading(true);
+                const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+                setLoading(false);
+                if (error) setError(error.message);
+                else setInfo("Wysłaliśmy link do resetu hasła na " + email);
+              }}
+              style={{ background: "none", border: "none", color: B.gray, fontSize: 13, cursor: "pointer", textAlign: "right", padding: 0, alignSelf: "flex-end" }}
+            >
+              Nie pamiętam hasła
+            </button>
+          )}
           {error && <p style={{ color: "#E53E3E", fontSize: 13, margin: 0 }}>{error}</p>}
           {info && <p style={{ color: B.green, fontSize: 13, margin: 0 }}>{info}</p>}
           <button
