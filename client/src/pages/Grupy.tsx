@@ -180,10 +180,6 @@ function GroupCard({ slug, icon, name, desc }: { slug: string; icon: string; nam
 export default function Grupy() {
   return (
     <div style={{ padding: 16 }}>
-      <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: -1, marginBottom: 8, color: B.ink }}>Grupy</h1>
-        <p style={{ color: B.gray }}>Dołącz do grupy i rozmawiaj z jej członkami.</p>
-      </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {GROUPS.map(g => <GroupCard key={g.slug} {...g} />)}

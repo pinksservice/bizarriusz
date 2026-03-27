@@ -104,10 +104,6 @@ export default function Ogloszenia() {
   return (
     <div style={{ padding: 16 }}>
       {showForm && <NewAdForm onClose={() => setShowForm(false)} />}
-      <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: -1, marginBottom: 4, color: B.ink }}>Ogłoszenia</h1>
-        <p style={{ color: B.gray, margin: 0 }}>Szukasz kogoś? Tu jest najlepsze miejsce.</p>
-      </div>
       {isAuthenticated && (
         <button onClick={() => setShowForm(true)} style={{ position: "fixed", bottom: "calc(80px + env(safe-area-inset-bottom))", right: 20, zIndex: 1050, width: 56, height: 56, borderRadius: "50%", background: B.orange, color: "white", border: "none", fontSize: 28, fontWeight: 300, cursor: "pointer", boxShadow: "0 4px 20px rgba(255,200,36,.5)", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
           +
@@ -137,8 +133,16 @@ export default function Ogloszenia() {
               style={{ background: B.card, border: `1.5px solid ${B.border}`, borderRadius: 20, padding: 20, cursor: "pointer", transition: "all .2s" }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = B.orange; e.currentTarget.style.transform = "translateY(-2px)"; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = B.border; e.currentTarget.style.transform = "translateY(0)"; }}>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
-                {ad.category && <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 8, background: B.orangeSoft, color: B.orange }}>{ad.category}</span>}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: B.grayLight, overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800, color: B.gray }}>
+                  {ad.authorAvatarUrl
+                    ? <img src={ad.authorAvatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    : (ad.authorName?.[0]?.toUpperCase() || "?")}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: B.ink }}>{ad.authorName || "Użytkownik"}</div>
+                  {ad.category && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 8, background: B.orangeSoft, color: B.orange }}>{ad.category}</span>}
+                </div>
               </div>
               <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 6, letterSpacing: -0.3, color: B.ink }}>{ad.title}</div>
               <div style={{ fontSize: 13, color: B.gray, lineHeight: 1.6, marginBottom: 10 }}>{ad.description?.slice(0, 120)}{ad.description?.length > 120 ? "…" : ""}</div>

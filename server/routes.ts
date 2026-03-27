@@ -294,7 +294,18 @@ export function registerRoutes(app: Express) {
         .where(and(...conditions))
         .orderBy(desc(ads.createdAt))
         .limit(50);
-      res.json(result);
+
+      // Fetch avatars for unique authors in parallel
+      const uniqueUuids = [...new Set(result.map(a => a.authorUuid).filter(Boolean))] as string[];
+      const avatarMap = new Map<string, string | null>();
+      await Promise.all(uniqueUuids.map(async (uuid) => {
+        try {
+          const { data: { user: u } } = await supabaseAdmin.auth.admin.getUserById(uuid);
+          avatarMap.set(uuid, u?.user_metadata?.avatar_url || null);
+        } catch { avatarMap.set(uuid, null); }
+      }));
+
+      res.json(result.map(a => ({ ...a, authorAvatarUrl: a.authorUuid ? avatarMap.get(a.authorUuid) ?? null : null })));
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -324,7 +335,7 @@ export function registerRoutes(app: Express) {
         .orderBy(desc(privateMessages.createdAt));
 
       // Group by conversation partner
-      const convMap = new Map<string, { partnerId: string; partnerName: string; lastMessage: string; lastTime: string; unreadCount: number }>();
+      const convMap = new Map<string, { partnerId: string; partnerName: string; partnerAvatar: string | null; lastMessage: string; lastTime: string; unreadCount: number }>();
       for (const msg of allMsgs) {
         const isOwn = msg.senderId === userId;
         const partnerId = isOwn ? msg.recipientId : msg.senderId;
@@ -333,6 +344,7 @@ export function registerRoutes(app: Express) {
           convMap.set(partnerId, {
             partnerId,
             partnerName,
+            partnerAvatar: null,
             lastMessage: msg.content,
             lastTime: msg.createdAt ? msg.createdAt.toISOString() : new Date().toISOString(),
             unreadCount: 0,
@@ -343,6 +355,14 @@ export function registerRoutes(app: Express) {
           conv.unreadCount += 1;
         }
       }
+
+      // Fetch avatars for all partners in parallel
+      await Promise.all(Array.from(convMap.keys()).map(async (partnerId) => {
+        try {
+          const { data: { user: u } } = await supabaseAdmin.auth.admin.getUserById(partnerId);
+          convMap.get(partnerId)!.partnerAvatar = u?.user_metadata?.avatar_url || null;
+        } catch { /* leave null */ }
+      }));
 
       res.json(Array.from(convMap.values()));
     } catch (err: any) {

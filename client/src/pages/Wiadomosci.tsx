@@ -9,6 +9,7 @@ import type { PrivateMessage, UserGalleryPhoto } from "@shared/schema";
 interface Conversation {
   partnerId: string;
   partnerName: string;
+  partnerAvatar: string | null;
   lastMessage: string;
   lastTime: string;
   unreadCount: number;
@@ -55,9 +56,10 @@ export default function Wiadomosci() {
     enabled: isAuthenticated && !!selectedPartnerId,
   });
 
+  // Loads automatically when conversation opens; also used by modal (same cache key)
   const { data: profileData } = useQuery<any>({
-    queryKey: [`/api/users/${profileUserId}/profile`],
-    enabled: !!profileUserId,
+    queryKey: [`/api/users/${selectedPartnerId}/profile`],
+    enabled: !!selectedPartnerId,
     staleTime: 60000,
   });
 
@@ -347,9 +349,6 @@ export default function Wiadomosci() {
   // Inbox view
   return (
     <div style={{ padding: 16, maxWidth: 520, margin: "0 auto" }}>
-      <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: -1, margin: 0, color: B.ink }}>Wiadomości</h1>
-      </div>
 
       {conversations.length === 0 ? (
         <div style={{ textAlign: "center", padding: "40px 20px", color: B.gray }}>
@@ -368,8 +367,10 @@ export default function Wiadomosci() {
               onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = B.border; }}
             >
               {/* Avatar */}
-              <div style={{ width: 44, height: 44, borderRadius: 14, background: conv.unreadCount > 0 ? B.orange : B.grayLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 800, color: conv.unreadCount > 0 ? "white" : B.gray, flexShrink: 0 }}>
-                {conv.partnerName[0]?.toUpperCase() || "?"}
+              <div style={{ width: 44, height: 44, borderRadius: 14, background: conv.unreadCount > 0 ? B.orange : B.grayLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 800, color: conv.unreadCount > 0 ? "white" : B.gray, flexShrink: 0, overflow: "hidden" }}>
+                {conv.partnerAvatar
+                  ? <img src={conv.partnerAvatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  : (conv.partnerName[0]?.toUpperCase() || "?")}
               </div>
               {/* Content */}
               <div style={{ flex: 1, minWidth: 0 }}>
