@@ -100,7 +100,27 @@ export const privateMessages = pgTable("private_messages", {
   content: text("content").notNull(),
   adId: integer("ad_id"),
   adTitle: text("ad_title"),
+  imageUrl: text("image_url"),
   isRead: boolean("is_read").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 export type PrivateMessage = typeof privateMessages.$inferSelect;
+
+// === PUSH SUBSCRIPTIONS ===
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// === USER GALLERY ===
+export const userGallery = pgTable("user_gallery", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  imageUrl: text("image_url").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+export type UserGalleryPhoto = typeof userGallery.$inferSelect;

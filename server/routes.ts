@@ -1,14 +1,45 @@
 import type { Express, Request, Response } from "express";
 import { db } from "./db.js";
-import { shoutboxMessages, ads, groupMemberships, privateMessages } from "../shared/schema.js";
+import { shoutboxMessages, ads, groupMemberships, privateMessages, userGallery, pushSubscriptions } from "../shared/schema.js";
 import { desc, eq, and, sql, or } from "drizzle-orm";
 import { isAuthenticated, isAdmin, isAdminEmail, supabaseAdmin } from "./auth.js";
+import webpush from "web-push";
+
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(
+    "mailto:admin@bizarriusz.pl",
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+}
 
 export function registerRoutes(app: Express) {
 
   // === AUTH ===
   app.get("/api/auth/user", isAuthenticated, (req: any, res: Response) => {
     res.json({ id: req.user.id, email: req.user.email, isAdmin: isAdminEmail(req.user.email) });
+  });
+
+  // GET /api/users/:userId/profile - public profile
+  app.get("/api/users/:userId/profile", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const { userId } = req.params;
+      const { data: { user: supaUser } } = await supabaseAdmin.auth.admin.getUserById(userId);
+      if (!supaUser) return res.status(404).json({ message: "Nie znaleziono użytkownika" });
+      const m = supaUser.user_metadata || {};
+      res.json({
+        id: userId,
+        displayName: m.full_name || m.name || supaUser.email?.split("@")[0] || "Użytkownik",
+        avatarUrl: m.avatar_url || null,
+        age: m.age || null,
+        height: m.height || null,
+        weight: m.weight || null,
+        about: m.about || null,
+        lookingFor: m.looking_for || null,
+      });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
   });
 
   // === SHOUTBOX ===
@@ -225,6 +256,29 @@ export function registerRoutes(app: Express) {
       }
       await db.update(shoutboxMessages).set({ isPinned: pinned }).where(eq(shoutboxMessages.id, id));
       res.json({ ok: true });
+
+      // Send push to all subscribers when pinning
+      if (pinned && process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+        const [msg] = await db.select().from(shoutboxMessages).where(eq(shoutboxMessages.id, id)).limit(1);
+        const subs = await db.select().from(pushSubscriptions);
+        const payload = JSON.stringify({
+          title: "📌 Wiadomość od recepcji",
+          body: msg?.content?.slice(0, 100) || "",
+          url: "/",
+        });
+        for (const sub of subs) {
+          try {
+            await webpush.sendNotification(
+              { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+              payload
+            );
+          } catch (pushErr: any) {
+            if (pushErr.statusCode === 410 || pushErr.statusCode === 404) {
+              await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, sub.endpoint));
+            }
+          }
+        }
+      }
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -320,8 +374,8 @@ export function registerRoutes(app: Express) {
     try {
       const userId = req.user.id;
       const { partnerId } = req.params;
-      const { content, recipientName, adId, adTitle } = req.body;
-      if (!content?.trim()) return res.status(400).json({ message: "Treść wiadomości jest wymagana" });
+      const { content, recipientName, adId, adTitle, imageUrl } = req.body;
+      if (!content?.trim() && !imageUrl) return res.status(400).json({ message: "Treść wiadomości jest wymagana" });
 
       let senderName = req.user.email?.split("@")[0] || "Anonim";
       try {
@@ -335,13 +389,88 @@ export function registerRoutes(app: Express) {
         senderName,
         recipientId: partnerId,
         recipientName: recipientName || "Użytkownik",
-        content: content.trim(),
+        content: content?.trim() || "",
         adId: adId || null,
         adTitle: adTitle || null,
+        imageUrl: imageUrl || null,
         isRead: false,
       }).returning();
 
       res.status(201).json(msg);
+
+      // Send push notification to recipient (non-blocking)
+      if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+        db.select().from(pushSubscriptions).where(eq(pushSubscriptions.userId, partnerId))
+          .then(async (subs) => {
+            const payload = JSON.stringify({
+              title: `Wiadomość od ${senderName}`,
+              body: imageUrl ? "📷 Zdjęcie" : (content?.trim() || "").slice(0, 100),
+              url: "/wiadomosci",
+            });
+            for (const sub of subs) {
+              try {
+                await webpush.sendNotification(
+                  { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+                  payload
+                );
+              } catch (pushErr: any) {
+                // Remove expired/invalid subscriptions
+                if (pushErr.statusCode === 410 || pushErr.statusCode === 404) {
+                  await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, sub.endpoint));
+                }
+              }
+            }
+          })
+          .catch(() => {});
+      }
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // === USER GALLERY ===
+
+  // GET /api/gallery - get current user's gallery
+  app.get("/api/gallery", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const photos = await db.select().from(userGallery)
+        .where(eq(userGallery.userId, req.user.id))
+        .orderBy(userGallery.createdAt);
+      res.json(photos);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // POST /api/gallery - add photo URL to gallery (upload done client-side)
+  app.post("/api/gallery", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const { imageUrl } = req.body;
+      if (!imageUrl) return res.status(400).json({ message: "imageUrl jest wymagany" });
+
+      const [{ count }] = await db.select({ count: sql<number>`count(*)::int` })
+        .from(userGallery).where(eq(userGallery.userId, req.user.id));
+      if (count >= 5) return res.status(400).json({ message: "Maksymalnie 5 zdjęć w galerii" });
+
+      const [photo] = await db.insert(userGallery).values({
+        userId: req.user.id,
+        imageUrl,
+      }).returning();
+      res.status(201).json(photo);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // DELETE /api/gallery/:id - remove photo from gallery
+  app.delete("/api/gallery/:id", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const [photo] = await db.select().from(userGallery).where(eq(userGallery.id, id)).limit(1);
+      if (!photo) return res.status(404).json({ message: "Nie znaleziono" });
+      if (photo.userId !== req.user.id) return res.status(403).json({ message: "Brak dostępu" });
+      await db.delete(userGallery).where(eq(userGallery.id, id));
+      res.json({ ok: true });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -355,6 +484,50 @@ export function registerRoutes(app: Express) {
       await db.update(privateMessages)
         .set({ isRead: true })
         .where(and(eq(privateMessages.senderId, partnerId), eq(privateMessages.recipientId, userId), eq(privateMessages.isRead, false)));
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // === PUSH NOTIFICATIONS ===
+
+  app.get("/api/push/public-key", (_req: Request, res: Response) => {
+    const key = process.env.VAPID_PUBLIC_KEY;
+    if (!key) return res.status(503).json({ message: "Push not configured" });
+    res.json({ publicKey: key });
+  });
+
+  app.post("/api/push/subscribe", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const { endpoint, keys } = req.body;
+      if (!endpoint || !keys?.p256dh || !keys?.auth) {
+        return res.status(400).json({ message: "Nieprawidłowa subskrypcja" });
+      }
+      await db.insert(pushSubscriptions).values({
+        userId: req.user.id,
+        endpoint,
+        p256dh: keys.p256dh,
+        auth: keys.auth,
+      }).onConflictDoUpdate({
+        target: pushSubscriptions.endpoint,
+        set: { userId: req.user.id, p256dh: keys.p256dh, auth: keys.auth },
+      });
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/push/unsubscribe", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const { endpoint } = req.body;
+      if (endpoint) {
+        await db.delete(pushSubscriptions)
+          .where(and(eq(pushSubscriptions.endpoint, endpoint), eq(pushSubscriptions.userId, req.user.id)));
+      } else {
+        await db.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, req.user.id));
+      }
       res.json({ ok: true });
     } catch (err: any) {
       res.status(500).json({ message: err.message });

@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import { apiRequest } from "../lib/queryClient";
 import { useAuth } from "../hooks/use-auth";
 import { B } from "../layout/BizLayout";
-import type { PrivateMessage } from "@shared/schema";
+import type { PrivateMessage, UserGalleryPhoto } from "@shared/schema";
 
 interface Conversation {
   partnerId: string;
@@ -45,8 +45,28 @@ export default function Wiadomosci() {
   const [selectedPartnerName, setSelectedPartnerName] = useState<string>(nameParam ? decodeURIComponent(nameParam) : "");
   const [messageInput, setMessageInput] = useState("");
   const [sendError, setSendError] = useState("");
+  const [showGalleryPicker, setShowGalleryPicker] = useState(false);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const prevLengthRef = useRef(0);
+
+  const { data: myGallery = [] } = useQuery<UserGalleryPhoto[]>({
+    queryKey: ["/api/gallery"],
+    enabled: isAuthenticated && !!selectedPartnerId,
+  });
+
+  const { data: profileData } = useQuery<any>({
+    queryKey: [`/api/users/${profileUserId}/profile`],
+    enabled: !!profileUserId,
+    staleTime: 60000,
+  });
+
+  // Pre-fetch profile when opened via URL param
+  useEffect(() => {
+    if (toParam && isAuthenticated) {
+      qc.prefetchQuery({ queryKey: [`/api/users/${toParam}/profile`], staleTime: 60000 });
+    }
+  }, [toParam, isAuthenticated]);
 
   // Inbox query
   const { data: conversations = [] } = useQuery<Conversation[]>({
@@ -83,10 +103,11 @@ export default function Wiadomosci() {
 
   // Send message mutation
   const sendMutation = useMutation({
-    mutationFn: async (content: string) => {
+    mutationFn: async ({ content, imageUrl }: { content: string; imageUrl?: string }) => {
       const body: any = { content, recipientName: selectedPartnerName };
       if (adIdParam) body.adId = parseInt(adIdParam);
       if (adTitleParam) body.adTitle = decodeURIComponent(adTitleParam);
+      if (imageUrl) body.imageUrl = imageUrl;
       const res = await apiRequest("POST", `/api/messages/${selectedPartnerId}`, body);
       return res.json();
     },
@@ -102,14 +123,23 @@ export default function Wiadomosci() {
   const handleSend = () => {
     const t = messageInput.trim();
     if (!t || !selectedPartnerId) return;
-    sendMutation.mutate(t);
+    sendMutation.mutate({ content: t });
     setMessageInput("");
+  };
+
+  const handleSendPhoto = (photo: UserGalleryPhoto) => {
+    if (!selectedPartnerId) return;
+    setShowGalleryPicker(false);
+    sendMutation.mutate({ content: "", imageUrl: photo.imageUrl });
   };
 
   const openConversation = (conv: Conversation) => {
     setSelectedPartnerId(conv.partnerId);
     setSelectedPartnerName(conv.partnerName);
+    setProfileUserId(null);
     prevLengthRef.current = 0;
+    // Pre-fetch profile
+    qc.prefetchQuery({ queryKey: [`/api/users/${conv.partnerId}/profile`], staleTime: 60000 });
   };
 
   const backToInbox = () => {
@@ -142,6 +172,45 @@ export default function Wiadomosci() {
   if (selectedPartnerId) {
     return (
       <div style={{ display: "flex", flexDirection: "column", height: "calc(100dvh - 58px - env(safe-area-inset-bottom) - 56px)", maxWidth: 520, margin: "0 auto" }}>
+        {/* Profile modal */}
+        {profileUserId && profileData && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 1300, background: "rgba(0,0,0,.5)", display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setProfileUserId(null)}>
+            <div style={{ background: B.bg, borderRadius: "28px 28px 0 0", padding: 24, paddingBottom: 40, width: "100%", maxWidth: 520, maxHeight: "80vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+                <button onClick={() => setProfileUserId(null)} style={{ background: B.grayLight, border: "none", borderRadius: "50%", width: 34, height: 34, fontSize: 18, cursor: "pointer", color: B.gray }}>×</button>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, marginBottom: 20 }}>
+                <div style={{ width: 80, height: 80, borderRadius: "50%", overflow: "hidden", background: B.orange, display: "flex", alignItems: "center", justifyContent: "center", border: `3px solid ${B.orange}` }}>
+                  {profileData.avatarUrl
+                    ? <img src={profileData.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    : <span style={{ fontSize: 32, fontWeight: 800, color: "white" }}>{profileData.displayName?.[0]?.toUpperCase() || "?"}</span>
+                  }
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: B.ink }}>{profileData.displayName}</div>
+                {(profileData.age || profileData.height || profileData.weight) && (
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
+                    {profileData.age && <span style={{ fontSize: 13, padding: "4px 12px", borderRadius: 10, background: B.grayLight, color: B.ink, fontWeight: 600 }}>{profileData.age} lat</span>}
+                    {profileData.height && <span style={{ fontSize: 13, padding: "4px 12px", borderRadius: 10, background: B.grayLight, color: B.ink, fontWeight: 600 }}>{profileData.height} cm</span>}
+                    {profileData.weight && <span style={{ fontSize: 13, padding: "4px 12px", borderRadius: 10, background: B.grayLight, color: B.ink, fontWeight: 600 }}>{profileData.weight} kg</span>}
+                  </div>
+                )}
+              </div>
+              {profileData.about && (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: B.gray, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 6 }}>O mnie</div>
+                  <div style={{ fontSize: 14, color: B.ink, lineHeight: 1.6, background: B.grayLight, borderRadius: 14, padding: "12px 14px" }}>{profileData.about}</div>
+                </div>
+              )}
+              {profileData.lookingFor && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: B.gray, textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 6 }}>Czego szuka</div>
+                  <div style={{ fontSize: 14, color: B.ink, lineHeight: 1.6, background: B.grayLight, borderRadius: 14, padding: "12px 14px" }}>{profileData.lookingFor}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderBottom: `1px solid ${B.border}`, background: B.bg, flexShrink: 0 }}>
           <button
@@ -150,8 +219,22 @@ export default function Wiadomosci() {
           >
             ←
           </button>
-          <div style={{ fontWeight: 800, fontSize: 18, color: B.ink, letterSpacing: -0.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {selectedPartnerName}
+          <div
+            onClick={() => setProfileUserId(selectedPartnerId)}
+            style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", flex: 1, minWidth: 0 }}
+          >
+            <div style={{ width: 38, height: 38, borderRadius: 12, overflow: "hidden", background: B.orange, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 16, fontWeight: 800, color: "white" }}>
+              {profileData?.avatarUrl
+                ? <img src={profileData.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                : (selectedPartnerName?.[0]?.toUpperCase() || "?")
+              }
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontWeight: 800, fontSize: 17, color: B.ink, letterSpacing: -0.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {selectedPartnerName}
+              </div>
+              <div style={{ fontSize: 11, color: B.orange, fontWeight: 600 }}>Zobacz profil</div>
+            </div>
           </div>
         </div>
 
@@ -172,17 +255,23 @@ export default function Wiadomosci() {
                       Re: {msg.adTitle}
                     </div>
                   )}
-                  <div style={{
-                    background: isOwn ? B.orange : B.grayLight,
-                    color: isOwn ? "white" : B.ink,
-                    borderRadius: isOwn ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
-                    padding: "10px 14px",
-                    fontSize: 14,
-                    lineHeight: 1.5,
-                    wordBreak: "break-word",
-                  }}>
-                    {msg.content}
-                  </div>
+                  {(msg as any).imageUrl ? (
+                    <div style={{ borderRadius: isOwn ? "18px 18px 4px 18px" : "18px 18px 18px 4px", overflow: "hidden", maxWidth: 220 }}>
+                      <img src={(msg as any).imageUrl} alt="" style={{ width: "100%", display: "block", cursor: "pointer" }} onClick={() => window.open((msg as any).imageUrl, "_blank")} />
+                    </div>
+                  ) : (
+                    <div style={{
+                      background: isOwn ? B.orange : B.grayLight,
+                      color: isOwn ? "white" : B.ink,
+                      borderRadius: isOwn ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+                      padding: "10px 14px",
+                      fontSize: 14,
+                      lineHeight: 1.5,
+                      wordBreak: "break-word",
+                    }}>
+                      {msg.content}
+                    </div>
+                  )}
                   <div style={{ fontSize: 10, color: B.gray, marginTop: 3, textAlign: isOwn ? "right" : "left" }}>
                     {msg.createdAt ? formatTime(msg.createdAt) : ""}
                   </div>
@@ -193,6 +282,35 @@ export default function Wiadomosci() {
           <div ref={endRef} />
         </div>
 
+        {/* Gallery picker modal */}
+        {showGalleryPicker && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 1200, background: "rgba(0,0,0,.5)", display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setShowGalleryPicker(false)}>
+            <div style={{ background: B.bg, borderRadius: "24px 24px 0 0", padding: 20, paddingBottom: 32, width: "100%", maxWidth: 520 }} onClick={e => e.stopPropagation()}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <span style={{ fontWeight: 800, fontSize: 17, color: B.ink }}>Wyślij ze galerii</span>
+                <button onClick={() => setShowGalleryPicker(false)} style={{ background: B.grayLight, border: "none", borderRadius: "50%", width: 32, height: 32, fontSize: 16, cursor: "pointer", color: B.gray }}>×</button>
+              </div>
+              {myGallery.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "20px 0", color: B.gray, fontSize: 14 }}>
+                  Brak zdjęć w galerii. Dodaj zdjęcia w Profilu.
+                </div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+                  {myGallery.map(photo => (
+                    <div key={photo.id} style={{ borderRadius: 12, overflow: "hidden", aspectRatio: "1", cursor: "pointer", border: `2px solid transparent` }}
+                      onClick={() => handleSendPhoto(photo)}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = B.orange; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "transparent"; }}
+                    >
+                      <img src={photo.imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Input */}
         {sendError && (
           <div style={{ padding: "4px 16px", fontSize: 12, color: "#E53E3E", borderTop: `1px solid ${B.border}` }}>
@@ -200,6 +318,13 @@ export default function Wiadomosci() {
           </div>
         )}
         <div style={{ borderTop: `1px solid ${B.border}`, padding: "10px 16px", display: "flex", gap: 8, background: B.bg, flexShrink: 0 }}>
+          <button
+            onClick={() => setShowGalleryPicker(true)}
+            title="Wyślij zdjęcie z galerii"
+            style={{ width: 44, height: 44, borderRadius: "50%", background: B.grayLight, border: "none", fontSize: 18, cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+          >
+            🖼️
+          </button>
           <input
             value={messageInput}
             onChange={e => setMessageInput(e.target.value)}
@@ -223,7 +348,7 @@ export default function Wiadomosci() {
   return (
     <div style={{ padding: 16, maxWidth: 520, margin: "0 auto" }}>
       <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: -1, marginBottom: 4, color: B.ink }}>Wiadomości</h1>
+        <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: -1, margin: 0, color: B.ink }}>Wiadomości</h1>
       </div>
 
       {conversations.length === 0 ? (
