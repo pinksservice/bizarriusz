@@ -11,7 +11,7 @@ const WEEK = [
 ];
 
 const PRICE_WD = [
-  { label: "Normalny", val: "40 zł" },
+  { label: "Panowie", val: "40 zł" },
   { label: "Do 27 lat", val: "30 zł" },
   { label: "Pary / Trans", val: "30 zł" },
   { label: "Panie", val: "gratis", green: true },
