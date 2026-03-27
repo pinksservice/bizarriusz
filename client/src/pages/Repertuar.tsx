@@ -28,10 +28,6 @@ export default function Repertuar() {
 
   return (
     <div style={{ padding: 16 }}>
-      <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: -0.8, marginBottom: 4, color: B.ink }}>Repertuar</h1>
-        <p style={{ color: B.gray, fontSize: 14 }}>Co się dzieje każdego dnia tygodnia.</p>
-      </div>
 
       {/* Week schedule */}
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 28 }}>
