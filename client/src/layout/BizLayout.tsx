@@ -5,9 +5,9 @@ import { useAuth } from "../hooks/use-auth";
 export const B = {
   bg: "#FFFEF9",
   ink: "#0D0D0D",
-  orange: "#FF6B35",
-  orangeSoft: "rgba(255,107,53,.10)",
-  orangeMid: "rgba(255,107,53,.18)",
+  orange: "#FFC824",
+  orangeSoft: "rgba(255,200,36,.10)",
+  orangeMid: "rgba(255,200,36,.18)",
   gray: "#787878",
   grayLight: "#F4F4F0",
   border: "rgba(13,13,13,.08)",
