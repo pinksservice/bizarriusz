@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { supabase } from "../lib/supabase";
 import { B } from "../layout/BizLayout";
@@ -10,18 +10,6 @@ export default function ResetPassword() {
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setReady(true);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") setReady(true);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,17 +23,6 @@ export default function ResetPassword() {
     setInfo("Hasło zmienione! Za chwilę przejdziesz do strony głównej.");
     setTimeout(() => navigate("/"), 2000);
   };
-
-  if (!ready) {
-    return (
-      <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-        <div style={{ textAlign: "center", color: B.gray }}>
-          <p style={{ fontSize: 16 }}>Weryfikacja linku…</p>
-          <p style={{ fontSize: 13, marginTop: 8 }}>Jeśli ta strona się nie zmienia, wróć do emaila i kliknij link ponownie.</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
