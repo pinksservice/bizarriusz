@@ -101,6 +101,7 @@ export function BizLayout({ children }: { children: ReactNode }) {
   const handleAgeConfirm = () => {
     try { localStorage.setItem("biz_age", "1"); } catch {}
     setAgeConfirmed(true);
+    window.scrollTo(0, 0);
   };
 
   return (
