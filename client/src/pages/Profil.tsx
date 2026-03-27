@@ -170,8 +170,6 @@ export default function Profil() {
 
   return (
     <div style={{ padding: 16, maxWidth: 480, margin: "0 auto" }}>
-      <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: -1, marginBottom: 24, color: B.ink }}>Mój profil</h1>
-
       {/* Avatar */}
       <div style={{ ...card, display: "flex", alignItems: "center", gap: 20 }}>
         <div style={{ position: "relative", flexShrink: 0 }}>
