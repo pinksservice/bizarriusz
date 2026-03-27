@@ -20,9 +20,10 @@ function GroupChat({ slug, isMember }: { slug: string; isMember: boolean }) {
   const { isAuthenticated } = useAuth();
   const qc = useQueryClient();
   const [content, setContent] = useState("");
+  const [sendError, setSendError] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
 
-  const { data: messages = [] } = useQuery<ShoutboxMessage[]>({
+  const { data: messages = [], error: msgsError } = useQuery<ShoutboxMessage[]>({
     queryKey: [`/api/groups/${slug}/messages`],
     refetchInterval: 4000,
     staleTime: 0,
@@ -36,7 +37,9 @@ function GroupChat({ slug, isMember }: { slug: string; isMember: boolean }) {
     onSuccess: (newMsg) => {
       qc.setQueryData<ShoutboxMessage[]>([`/api/groups/${slug}/messages`], (old = []) => [...old, newMsg]);
       setContent("");
+      setSendError("");
     },
+    onError: (err: any) => setSendError(err.message || "Błąd wysyłania"),
   });
 
   const prevLen = useRef(0);
@@ -50,7 +53,7 @@ function GroupChat({ slug, isMember }: { slug: string; isMember: boolean }) {
 
   const handleSend = () => {
     const t = content.trim();
-    if (!t || !isMember) return;
+    if (!t) return;
     send.mutate(t);
   };
 
@@ -73,6 +76,7 @@ function GroupChat({ slug, isMember }: { slug: string; isMember: boolean }) {
         <div ref={endRef} />
       </div>
 
+      {sendError && <div style={{ fontSize: 12, color: "#E53E3E", padding: "4px 0" }}>{sendError}</div>}
       {isMember ? (
         <div style={{ display: "flex", gap: 8, paddingTop: 8 }}>
           <input
@@ -110,12 +114,22 @@ function GroupCard({ slug, icon, name, desc }: { slug: string; icon: string; nam
 
   const joinMutation = useMutation({
     mutationFn: () => apiRequest("POST", `/api/groups/${slug}/join`, {}).then(r => r.json()),
-    onSuccess: () => qc.invalidateQueries({ queryKey: [`/api/groups/${slug}/info`] }),
+    onSuccess: () => {
+      qc.setQueryData<GroupInfo>([`/api/groups/${slug}/info`], old => ({
+        isMember: true,
+        memberCount: (old?.memberCount ?? 0) + 1,
+      }));
+    },
   });
 
   const leaveMutation = useMutation({
     mutationFn: () => apiRequest("DELETE", `/api/groups/${slug}/leave`).then(r => r.json()),
-    onSuccess: () => qc.invalidateQueries({ queryKey: [`/api/groups/${slug}/info`] }),
+    onSuccess: () => {
+      qc.setQueryData<GroupInfo>([`/api/groups/${slug}/info`], old => ({
+        isMember: false,
+        memberCount: Math.max((old?.memberCount ?? 1) - 1, 0),
+      }));
+    },
   });
 
   const isMember = info?.isMember ?? false;
