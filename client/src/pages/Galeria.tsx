@@ -1,20 +1,38 @@
+import { useState } from "react";
 import { B } from "../layout/BizLayout";
 
-const TILES = [
-  { bg: "#F0EDE8", icon: "🛋️", label: "Lounge" },
-  { bg: "#EDE8F0", icon: "🚪", label: "Wejście" },
-  { bg: "#E8EDF0", icon: "🛁", label: "Łazienka" },
-  { bg: "#F0EDE8", icon: "🪑", label: "Bar" },
-  { bg: "#EDF0E8", icon: "💡", label: "Oświetlenie" },
-  { bg: "#F0E8ED", icon: "🎬", label: "Sala kinowa" },
+const PHOTOS = [
+  "IMG_1977.jpeg",
+  "IMG_1979.jpeg",
+  "IMG_1982.jpeg",
+  "IMG_1983.jpeg",
+  "IMG_1985.jpeg",
+  "IMG_1987.jpeg",
+  "IMG_1988.jpeg",
+  "IMG_1991.jpeg",
+  "IMG_1993.jpeg",
+  "IMG_1997.jpeg",
+  "IMG_2001.jpeg",
+  "IMG_2004.jpeg",
+  "IMG_2005.jpeg",
+  "IMG_2007.jpeg",
+  "IMG_2012.jpeg",
+  "IMG_2015.jpeg",
+  "IMG_2018.jpeg",
+  "IMG_2019.jpeg",
+  "IMG_2021.jpeg",
+  "IMG_2022.jpeg",
+  "IMG_2024.jpeg",
+  "IMG_2030.jpeg",
 ];
 
 export default function Galeria() {
+  const [lightbox, setLightbox] = useState<string | null>(null);
+
   return (
     <div style={{ padding: 16 }}>
       <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: -1, marginBottom: 6, color: B.ink }}>Galeria</h1>
-        <p style={{ color: B.gray, fontSize: 14 }}>Wnętrza kina. Bez zdjęć z imprez – dyskrecja to nasza zasada.</p>
+        <p style={{ color: B.gray, fontSize: 14 }}>Wnętrza klubu Bizarriusz.</p>
       </div>
 
       {/* Privacy note */}
@@ -26,32 +44,50 @@ export default function Galeria() {
       </div>
 
       {/* Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 20 }}>
-        {TILES.map(({ bg, icon, label }) => (
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6 }}>
+        {PHOTOS.map((name) => (
           <div
-            key={label}
-            style={{ aspectRatio: "1", borderRadius: 18, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: bg, border: `1.5px solid ${B.border}`, cursor: "pointer", gap: 8, transition: "transform .2s" }}
-            onMouseEnter={e => (e.currentTarget.style.transform = "scale(1.03)")}
-            onMouseLeave={e => (e.currentTarget.style.transform = "scale(1)")}
+            key={name}
+            onClick={() => setLightbox(`/galeria/${name}`)}
+            style={{ aspectRatio: "1", borderRadius: 12, overflow: "hidden", cursor: "pointer", background: B.border }}
           >
-            <span style={{ fontSize: 40 }}>{icon}</span>
-            <span style={{ fontSize: 11, fontWeight: 700, color: B.gray }}>{label}</span>
+            <img
+              src={`/galeria/${name}`}
+              alt=""
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+              loading="lazy"
+            />
           </div>
         ))}
       </div>
 
-      {/* CTA to send photos */}
-      <div style={{ background: B.card, border: `1.5px solid ${B.border}`, borderRadius: 18, padding: "20px 20px", textAlign: "center" }}>
-        <div style={{ fontSize: 24, marginBottom: 10 }}>📷</div>
-        <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6, color: B.ink }}>Chcesz zobaczyć więcej?</div>
-        <div style={{ fontSize: 13, color: B.gray, marginBottom: 16 }}>Pełna galeria wnętrz dostępna po zalogowaniu.</div>
-        <a
-          href="/login"
-          style={{ display: "inline-block", padding: "12px 28px", borderRadius: 14, background: B.ink, color: "white", textDecoration: "none", fontWeight: 700, fontSize: 14 }}
+      {/* Lightbox */}
+      {lightbox && (
+        <div
+          onClick={() => setLightbox(null)}
+          style={{
+            position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 1000, padding: 16,
+          }}
         >
-          Zaloguj się →
-        </a>
-      </div>
+          <img
+            src={lightbox}
+            alt=""
+            style={{ maxWidth: "100%", maxHeight: "90vh", borderRadius: 12, objectFit: "contain" }}
+          />
+          <button
+            onClick={() => setLightbox(null)}
+            style={{
+              position: "absolute", top: 16, right: 16,
+              background: "rgba(255,255,255,0.15)", border: "none",
+              color: "white", fontSize: 24, width: 44, height: 44,
+              borderRadius: "50%", cursor: "pointer", display: "flex",
+              alignItems: "center", justifyContent: "center",
+            }}
+          >✕</button>
+        </div>
+      )}
     </div>
   );
 }
