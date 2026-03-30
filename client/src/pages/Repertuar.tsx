@@ -5,7 +5,7 @@ const WEEK = [
   { short: "Wt", name: "Sex Grupowy", desc: "Impreza grupowa", hours: "14:00–23:00", price: "40 zł", day: 2 },
   { short: "Śr", name: "Naked", desc: "Impreza nagości", hours: "12:00–23:00", price: "40 zł", day: 3 },
   { short: "Czw", name: "Gang Bang", desc: "Impreza grupowa", hours: "14:00–23:00", price: "40 zł", day: 4 },
-  { short: "Pt", name: "Sex Party", desc: "Największa impreza tygodnia", hours: "20:00–3:00", price: "70 zł", highlight: true, day: 5 },
+  { short: "Pt", name: "Sex Party", desc: "Największa impreza tygodnia", hours: "20:00–3:00", price: "70 zł", day: 5 },
   { short: "Sb", name: "Impreza Specjalna", desc: "Temat zmienia się co tydzień", hours: "20:00–3:00", price: "70 zł", day: 6 },
   { short: "Nd", name: "Darkroom LGBT", desc: "Nagi męski darkroom", hours: "14:00–23:00", price: "40 zł", day: 0 },
 ];
@@ -25,26 +25,27 @@ const PRICE_WE = [
 
 export default function Repertuar() {
   const today = new Date().getDay();
+  const isWeekend = today === 5 || today === 6;
 
   return (
     <div style={{ padding: 16 }}>
 
       {/* Week schedule */}
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 28 }}>
-        {WEEK.map(({ short, name, desc, hours, price, highlight, day }) => {
+        {WEEK.map(({ short, name, desc, hours, price, day }) => {
           const isToday = day === today;
-          const bg = highlight ? B.orange : isToday ? B.ink : B.card;
-          const textColor = highlight || isToday ? "white" : B.ink;
-          const mutedColor = highlight ? "rgba(255,255,255,.7)" : isToday ? "rgba(255,255,255,.6)" : B.gray;
-          const priceColor = highlight ? "rgba(255,255,255,.85)" : isToday ? "rgba(255,255,255,.8)" : B.orange;
+          const bg = isToday ? B.orange : B.card;
+          const textColor = isToday ? "white" : B.ink;
+          const mutedColor = isToday ? "rgba(255,255,255,.7)" : B.gray;
+          const priceColor = isToday ? "rgba(255,255,255,.85)" : B.orange;
 
           return (
             <div
               key={day}
-              style={{ background: bg, border: highlight || isToday ? "none" : `1.5px solid ${B.border}`, borderRadius: 18, padding: "16px 20px", display: "grid", gridTemplateColumns: "60px 1fr auto", alignItems: "center", gap: 12 }}
+              style={{ background: bg, border: isToday ? "none" : `1.5px solid ${B.border}`, borderRadius: 18, padding: "16px 20px", display: "grid", gridTemplateColumns: "60px 1fr auto", alignItems: "center", gap: 12 }}
             >
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: mutedColor }}>
-                {short}{isToday && !highlight ? " ●" : ""}
+                {short}{isToday ? " ●" : ""}
               </div>
               <div>
                 <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 2, color: textColor }}>{name}</div>
@@ -65,8 +66,8 @@ export default function Repertuar() {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         {/* Weekday */}
-        <div style={{ background: B.card, border: `1.5px solid ${B.border}`, borderRadius: 22, overflow: "hidden" }}>
-          <div style={{ padding: "14px 20px", fontWeight: 700, fontSize: 14, background: B.grayLight }}>
+        <div style={{ background: B.card, border: `1.5px solid ${isWeekend ? B.border : B.orange}`, borderRadius: 22, overflow: "hidden" }}>
+          <div style={{ padding: "14px 20px", fontWeight: 700, fontSize: 14, background: isWeekend ? B.grayLight : B.orange, color: isWeekend ? B.ink : "white" }}>
             Niedziela – Czwartek
           </div>
           {PRICE_WD.map(({ label, val, green }) => (
@@ -77,8 +78,8 @@ export default function Repertuar() {
           ))}
         </div>
         {/* Weekend */}
-        <div style={{ background: B.card, border: `1.5px solid ${B.border}`, borderRadius: 22, overflow: "hidden" }}>
-          <div style={{ padding: "14px 20px", fontWeight: 700, fontSize: 14, background: B.orange, color: "white" }}>
+        <div style={{ background: B.card, border: `1.5px solid ${isWeekend ? B.orange : B.border}`, borderRadius: 22, overflow: "hidden" }}>
+          <div style={{ padding: "14px 20px", fontWeight: 700, fontSize: 14, background: isWeekend ? B.orange : B.grayLight, color: isWeekend ? "white" : B.ink }}>
             Piątek i Sobota
           </div>
           {PRICE_WE.map(({ label, val, green }) => (
