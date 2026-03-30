@@ -4,7 +4,6 @@ import { B } from "../layout/BizLayout";
 const PHOTOS = [
   "IMG_1977.jpeg",
   "IMG_1979.jpeg",
-  "IMG_1982.jpeg",
   "IMG_1983.jpeg",
   "IMG_1985.jpeg",
   "IMG_1987.jpeg",
