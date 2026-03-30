@@ -114,44 +114,140 @@ export function BizLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div style={{ background: B.bg, color: B.ink, minHeight: "100dvh", fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif", paddingBottom: 80, overflowX: "hidden" }}>
-      {!ageConfirmed && <AgeGate onConfirm={handleAgeConfirm} />}
+    <>
+      <style>{`
+        .biz-root {
+          background: ${B.bg};
+          color: ${B.ink};
+          min-height: 100dvh;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          overflow-x: hidden;
+        }
 
-      {/* Top bar */}
-      <div style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(255,254,249,.88)", backdropFilter: "blur(20px)", borderBottom: `1px solid ${B.border}`, padding: "0 20px", display: "flex", alignItems: "center", height: 58, gap: 12 }}>
-        <Link href="/" style={{ textDecoration: "none", fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif", fontSize: 22, fontWeight: 800, color: B.ink, letterSpacing: -0.5, marginRight: "auto" }}>
-          Bizarr<span style={{ color: B.orange }}>i</span>usz
-        </Link>
-        <Link
-          href={isAuthenticated ? "/profil" : "/login"}
-          style={{ fontSize: 12, fontWeight: 700, background: B.ink, color: "white", borderRadius: 20, padding: "7px 16px", textDecoration: "none", letterSpacing: -0.2 }}
-        >
-          {isAuthenticated ? "Mój profil" : "Zaloguj →"}
-        </Link>
-      </div>
+        /* ── MOBILE (default) ── */
+        .biz-sidebar { display: none; }
+        .biz-topbar { display: flex; }
+        .biz-bottom-nav { display: flex; }
+        .biz-content { padding-bottom: 80px; }
 
-      <main>{children}</main>
+        /* ── DESKTOP ── */
+        @media (min-width: 768px) {
+          .biz-sidebar {
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 220px;
+            background: rgba(255,254,249,.96);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid ${B.border};
+            padding: 28px 16px 24px;
+            z-index: 100;
+            gap: 4px;
+          }
+          .biz-sidebar-logo {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: ${B.ink};
+            text-decoration: none;
+            margin-bottom: 24px;
+            padding: 0 8px;
+            display: block;
+          }
+          .biz-sidebar-profile {
+            margin-top: auto;
+            padding: 12px 8px 0;
+            border-top: 1px solid ${B.border};
+          }
+          .biz-topbar { display: none; }
+          .biz-bottom-nav { display: none; }
+          .biz-content {
+            margin-left: 220px;
+            padding-bottom: 0;
+            max-width: 720px;
+          }
+        }
+      `}</style>
 
-      {/* Bottom nav */}
-      <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "rgba(255,254,249,.92)", backdropFilter: "saturate(180%) blur(20px)", borderTop: `1px solid ${B.border}`, paddingBottom: "env(safe-area-inset-bottom)", zIndex: 1000 }}>
-        <div style={{ maxWidth: 520, margin: "0 auto", display: "flex", justifyContent: "space-around", padding: "8px 0 6px" }}>
+      <div className="biz-root">
+        {!ageConfirmed && <AgeGate onConfirm={handleAgeConfirm} />}
+
+        {/* Sidebar (desktop) */}
+        <nav className="biz-sidebar">
+          <Link href="/" className="biz-sidebar-logo">
+            Bizarr<span style={{ color: B.orange }}>i</span>usz
+          </Link>
+
           {NAV.map(({ href, label, icon }) => {
             const isActive = location === href || (href !== "/" && location.startsWith(href));
             return (
               <Link
                 key={href}
                 href={href}
-                style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "4px 0", textDecoration: "none", color: isActive ? B.orange : B.gray, transition: "color .2s" }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "11px 12px", borderRadius: 14, textDecoration: "none",
+                  color: isActive ? B.ink : B.gray,
+                  background: isActive ? B.orangeSoft : "transparent",
+                  fontWeight: isActive ? 700 : 500,
+                  fontSize: 14, transition: "background .15s, color .15s",
+                }}
               >
-                <div style={{ width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {icon}
-                </div>
-                <span style={{ fontSize: 10, fontWeight: isActive ? 700 : 600 }}>{label}</span>
+                <span style={{ color: isActive ? B.orange : "currentColor", display: "flex" }}>{icon}</span>
+                {label}
               </Link>
             );
           })}
+
+          <div className="biz-sidebar-profile">
+            <Link
+              href={isAuthenticated ? "/profil" : "/login"}
+              style={{ display: "block", padding: "10px 12px", borderRadius: 14, background: B.ink, color: "white", textDecoration: "none", fontWeight: 700, fontSize: 13, textAlign: "center" }}
+            >
+              {isAuthenticated ? "Mój profil" : "Zaloguj →"}
+            </Link>
+          </div>
+        </nav>
+
+        {/* Top bar (mobile) */}
+        <div className="biz-topbar" style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(255,254,249,.88)", backdropFilter: "blur(20px)", borderBottom: `1px solid ${B.border}`, padding: "0 20px", alignItems: "center", height: 58, gap: 12 }}>
+          <Link href="/" style={{ textDecoration: "none", fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif", fontSize: 22, fontWeight: 800, color: B.ink, letterSpacing: -0.5, marginRight: "auto" }}>
+            Bizarr<span style={{ color: B.orange }}>i</span>usz
+          </Link>
+          <Link
+            href={isAuthenticated ? "/profil" : "/login"}
+            style={{ fontSize: 12, fontWeight: 700, background: B.ink, color: "white", borderRadius: 20, padding: "7px 16px", textDecoration: "none", letterSpacing: -0.2 }}
+          >
+            {isAuthenticated ? "Mój profil" : "Zaloguj →"}
+          </Link>
         </div>
-      </nav>
-    </div>
+
+        <main className="biz-content">{children}</main>
+
+        {/* Bottom nav (mobile) */}
+        <nav className="biz-bottom-nav" style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "rgba(255,254,249,.92)", backdropFilter: "saturate(180%) blur(20px)", borderTop: `1px solid ${B.border}`, paddingBottom: "env(safe-area-inset-bottom)", zIndex: 1000 }}>
+          <div style={{ maxWidth: 520, margin: "0 auto", display: "flex", justifyContent: "space-around", padding: "8px 0 6px", width: "100%" }}>
+            {NAV.map(({ href, label, icon }) => {
+              const isActive = location === href || (href !== "/" && location.startsWith(href));
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "4px 0", textDecoration: "none", color: isActive ? B.orange : B.gray, transition: "color .2s" }}
+                >
+                  <div style={{ width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {icon}
+                  </div>
+                  <span style={{ fontSize: 10, fontWeight: isActive ? 700 : 600 }}>{label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      </div>
+    </>
   );
 }
