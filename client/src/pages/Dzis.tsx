@@ -16,7 +16,6 @@ const SCHEDULE: Record<number, { name: string; desc: string; hours: string; pric
   0: { name: "Darkroom LGBT", desc: "Nagi męski darkroom", hours: "14:00–23:00", price: "40 zł" },
 };
 
-const CHAT_TABS = ["💬 Ogólny", "💑 Swing", "🏳️‍🌈 LGBT", "⛓️ Fetysz", "📞 Recepcja"];
 
 const SOCIALS = [
   {
@@ -93,7 +92,6 @@ function TodayCard() {
 }
 
 function BizChat() {
-  const [tab, setTab] = useState(0);
   const [content, setContent] = useState("");
   const [sendError, setSendError] = useState("");
   const { isAuthenticated, isAdmin } = useAuth();
@@ -141,7 +139,7 @@ function BizChat() {
 
   const handleSend = () => {
     const t = content.trim();
-    if (!t || !isAuthenticated || tab !== 0) return;
+    if (!t || !isAuthenticated) return;
     send.mutate(t);
     setContent("");
   };
@@ -150,16 +148,7 @@ function BizChat() {
 
   return (
     <div style={{ background: B.card, border: `1.5px solid ${B.border}`, borderRadius: 22, overflow: "hidden" }}>
-      <div style={{ display: "flex", borderBottom: `1px solid ${B.border}`, padding: "0 12px", overflowX: "auto" as const }}>
-        {CHAT_TABS.map((t, i) => (
-          <button key={t} onClick={() => setTab(i)}
-            style={{ padding: "12px 14px", fontSize: 13, fontWeight: 600, color: tab === i ? B.orange : B.gray, cursor: "pointer", whiteSpace: "nowrap" as const, background: "none", border: "none", borderBottom: `2px solid ${tab === i ? B.orange : "transparent"}`, marginBottom: -1 }}>
-            {t}
-          </button>
-        ))}
-      </div>
-
-      {tab === 0 && pinned && (
+      {pinned && (
         <div style={{ display: "flex", alignItems: "flex-start", gap: 8, margin: "10px 14px 0", padding: "10px 14px", background: `${B.orange}18`, border: `1.5px solid ${B.orange}40`, borderRadius: 14 }}>
           <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>📌</span>
           <div style={{ minWidth: 0 }}>
@@ -178,16 +167,16 @@ function BizChat() {
       <div style={{ borderBottom: `1px solid ${B.border}`, padding: "10px 14px", display: "flex", gap: 8 }}>
         <input value={content} onChange={e => setContent(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSend()}
           placeholder={isAuthenticated ? "Napisz wiadomość..." : "Zaloguj się, aby pisać"}
-          disabled={!isAuthenticated || tab !== 0}
+          disabled={!isAuthenticated}
           style={{ flex: 1, background: B.grayLight, border: "none", borderRadius: 24, padding: "11px 18px", fontSize: 14, outline: "none", color: B.ink, fontFamily: "inherit" }} />
-        <button onClick={handleSend} disabled={!isAuthenticated || !content.trim() || tab !== 0}
+        <button onClick={handleSend} disabled={!isAuthenticated || !content.trim()}
           style={{ width: 44, height: 44, borderRadius: "50%", background: B.orange, border: "none", color: "white", fontSize: 18, cursor: "pointer", flexShrink: 0, opacity: (!isAuthenticated || !content.trim()) ? 0.5 : 1 }}>
           ↑
         </button>
       </div>
       {sendError && <div style={{ padding: "6px 14px", fontSize: 12, color: "#E53E3E", borderBottom: `1px solid ${B.border}` }}>{sendError}</div>}
       <div style={{ padding: 14, display: "flex", flexDirection: "column" as const, gap: 10, minHeight: 160, maxHeight: 260, overflowY: "auto" as const }}>
-        {tab === 0 ? [...messages].slice(-20).reverse().map((msg) => (
+        {[...messages].slice(-20).reverse().map((msg) => (
           <div key={msg.id} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
             <div style={{ width: 32, height: 32, borderRadius: 10, background: B.grayLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
               {(msg.username || "?")[0].toUpperCase()}
@@ -213,8 +202,6 @@ function BizChat() {
               </div>
             )}
           </div>
-        )) : (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flex: 1, color: B.gray, fontSize: 13 }}>Wkrótce dostępne…</div>
         )}
       </div>
     </div>
