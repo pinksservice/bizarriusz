@@ -62,11 +62,11 @@ const NAV = [
     ),
   },
   {
-    href: "/wiadomosci",
-    label: "Wiadomości",
+    href: "/info",
+    label: "Info",
     icon: (
       <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+        <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
       </svg>
     ),
   },
@@ -97,6 +97,13 @@ function AgeGate({ onConfirm }: { onConfirm: () => void }) {
     </div>
   );
 }
+
+const MailIcon = () => (
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+    <polyline points="22,6 12,13 2,6"/>
+  </svg>
+);
 
 export function BizLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
@@ -203,20 +210,50 @@ export function BizLayout({ children }: { children: ReactNode }) {
           })}
 
           <div className="biz-sidebar-profile">
-            <Link
-              href={isAuthenticated ? "/profil" : "/login"}
-              style={{ display: "block", padding: "10px 12px", borderRadius: 14, background: B.ink, color: "white", textDecoration: "none", fontWeight: 700, fontSize: 13, textAlign: "center" }}
-            >
-              {isAuthenticated ? "Mój profil" : "Zaloguj →"}
-            </Link>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Link
+                href={isAuthenticated ? "/profil" : "/login"}
+                style={{ flex: 1, display: "block", padding: "10px 12px", borderRadius: 14, background: B.ink, color: "white", textDecoration: "none", fontWeight: 700, fontSize: 13, textAlign: "center" }}
+              >
+                {isAuthenticated ? "Mój profil" : "Zaloguj →"}
+              </Link>
+              {isAuthenticated && (
+                <Link
+                  href="/wiadomosci"
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    width: 42, borderRadius: 14,
+                    background: location === "/wiadomosci" ? B.orangeSoft : B.grayLight,
+                    color: location === "/wiadomosci" ? B.orange : B.gray,
+                    textDecoration: "none",
+                  }}
+                >
+                  <MailIcon />
+                </Link>
+              )}
+            </div>
           </div>
         </nav>
 
         {/* Top bar (mobile) */}
-        <div className="biz-topbar" style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(255,254,249,.88)", backdropFilter: "blur(20px)", borderBottom: `1px solid ${B.border}`, padding: "0 20px", alignItems: "center", height: 58, gap: 12 }}>
+        <div className="biz-topbar" style={{ position: "sticky", top: 0, zIndex: 100, background: "rgba(255,254,249,.88)", backdropFilter: "blur(20px)", borderBottom: `1px solid ${B.border}`, padding: "0 16px", alignItems: "center", height: 58, gap: 10 }}>
           <Link href="/" style={{ textDecoration: "none", fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif", fontSize: 22, fontWeight: 800, color: B.ink, letterSpacing: -0.5, marginRight: "auto" }}>
             Bizarr<span style={{ color: B.orange }}>i</span>usz
           </Link>
+          {isAuthenticated && (
+            <Link
+              href="/wiadomosci"
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                width: 38, height: 38, borderRadius: "50%",
+                background: location === "/wiadomosci" ? B.orangeSoft : B.grayLight,
+                color: location === "/wiadomosci" ? B.orange : B.gray,
+                textDecoration: "none",
+              }}
+            >
+              <MailIcon />
+            </Link>
+          )}
           <Link
             href={isAuthenticated ? "/profil" : "/login"}
             style={{ fontSize: 12, fontWeight: 700, background: B.ink, color: "white", borderRadius: 20, padding: "7px 16px", textDecoration: "none", letterSpacing: -0.2 }}

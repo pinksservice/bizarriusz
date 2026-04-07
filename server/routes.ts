@@ -516,6 +516,143 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // === BLOG ===
+  app.get("/api/blog", async (_req: Request, res: Response) => {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from("articles")
+        .select("id, title, slug, excerpt, content, author, status, featured, cover_image, created_at, tags, category_slug")
+        .eq("site", "bizarriusz")
+        .eq("status", "published")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      res.json(data || []);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/admin/blog", isAuthenticated, isAdmin, async (_req: Request, res: Response) => {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from("articles")
+        .select("id, title, slug, excerpt, content, author, status, featured, cover_image, created_at, updated_at, tags, category_slug")
+        .eq("site", "bizarriusz")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      res.json(data || []);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/admin/blog", isAuthenticated, isAdmin, async (req: any, res: Response) => {
+    try {
+      const { title, slug, excerpt, content, status, featured, cover_image, tags, category_slug } = req.body;
+      if (!title?.trim() || !content?.trim()) return res.status(400).json({ message: "Tytuł i treść są wymagane" });
+      const finalSlug = (slug?.trim() ||
+        title.trim().toLowerCase()
+          .replace(/ą/g,"a").replace(/ę/g,"e").replace(/ó/g,"o").replace(/ś/g,"s")
+          .replace(/ł/g,"l").replace(/ż/g,"z").replace(/ź/g,"z").replace(/ć/g,"c").replace(/ń/g,"n")
+          .replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"")
+      ) + "-" + Date.now();
+      const { data, error } = await supabaseAdmin
+        .from("articles")
+        .insert({ title: title.trim(), slug: finalSlug, excerpt: excerpt?.trim() || null, content: content.trim(), status: status || "draft", featured: !!featured, cover_image: cover_image?.trim() || null, tags: tags || null, category_slug: category_slug?.trim() || null, site: "bizarriusz", author: req.user.email?.split("@")[0] || "Admin" })
+        .select().single();
+      if (error) throw error;
+      res.status(201).json(data);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message, detail: (err as any).detail ?? null });
+    }
+  });
+
+  app.put("/api/admin/blog/:id", isAuthenticated, isAdmin, async (req: any, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { title, slug, excerpt, content, status, featured, cover_image, tags, category_slug } = req.body;
+      const { data, error } = await supabaseAdmin
+        .from("articles")
+        .update({ title, slug, excerpt, content, status, featured: !!featured, cover_image, tags, category_slug, updated_at: new Date().toISOString() })
+        .eq("id", id).eq("site", "bizarriusz")
+        .select().single();
+      if (error) throw error;
+      res.json(data);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/admin/blog/:id", isAuthenticated, isAdmin, async (req: any, res: Response) => {
+    try {
+      const { error } = await supabaseAdmin.from("articles").delete().eq("id", parseInt(req.params.id)).eq("site", "bizarriusz");
+      if (error) throw error;
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // === ADMIN: USERS ===
+  app.get("/api/admin/users", isAuthenticated, isAdmin, async (_req: Request, res: Response) => {
+    try {
+      const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+      if (error) throw error;
+      res.json(users.map(u => ({
+        id: u.id,
+        email: u.email,
+        displayName: u.user_metadata?.full_name || u.user_metadata?.name || null,
+        avatarUrl: u.user_metadata?.avatar_url || null,
+        bannedUntil: (u as any).banned_until || null,
+        createdAt: u.created_at,
+      })));
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/admin/users/:id", isAuthenticated, isAdmin, async (req: any, res: Response) => {
+    try {
+      const { error } = await supabaseAdmin.auth.admin.deleteUser(req.params.id);
+      if (error) throw error;
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.patch("/api/admin/users/:id/ban", isAuthenticated, isAdmin, async (req: any, res: Response) => {
+    try {
+      const { ban } = req.body;
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(req.params.id, {
+        ban_duration: ban ? "876000h" : "none",
+      } as any);
+      if (error) throw error;
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // === ADMIN: ADS ===
+  app.get("/api/admin/ads", isAuthenticated, isAdmin, async (_req: Request, res: Response) => {
+    try {
+      const result = await db.select().from(ads).where(eq(ads.source, "bizarriusz")).orderBy(desc(ads.createdAt)).limit(200);
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/admin/ads/:id", isAuthenticated, isAdmin, async (req: any, res: Response) => {
+    try {
+      await db.delete(ads).where(eq(ads.id, parseInt(req.params.id)));
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
   // === PUSH NOTIFICATIONS ===
 
   app.get("/api/push/public-key", (_req: Request, res: Response) => {

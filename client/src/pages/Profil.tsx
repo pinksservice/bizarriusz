@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../hooks/use-auth";
+import { Link } from "wouter";
 import { apiRequest } from "../lib/queryClient";
 import { B } from "../layout/BizLayout";
 import type { UserGalleryPhoto } from "@shared/schema";
@@ -20,7 +21,7 @@ const lbl: React.CSSProperties = {
 };
 
 export default function Profil() {
-  const { user, isLoading, logout } = useAuth();
+  const { user, isLoading, logout, isAdmin } = useAuth();
   const [, navigate] = useLocation();
   const qc = useQueryClient();
 
@@ -230,6 +231,14 @@ export default function Profil() {
       </button>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {isAdmin && (
+          <Link
+            href="/admin"
+            style={{ display: "block", padding: 13, borderRadius: 14, background: "#FFF8E6", border: "1.5px solid #FFE082", color: "#9A6700", fontFamily: "inherit", fontSize: 14, fontWeight: 700, textDecoration: "none", textAlign: "center" as const }}
+          >
+            Panel admina →
+          </Link>
+        )}
         <button onClick={() => navigate("/reset-password")}
           style={{ padding: 13, borderRadius: 14, background: B.grayLight, border: "none", color: B.ink, fontFamily: "inherit", fontSize: 14, fontWeight: 600, cursor: "pointer", textAlign: "left" as const }}>
           🔑 Zmień hasło

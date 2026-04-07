@@ -11,6 +11,8 @@ import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
 import Profil from "./pages/Profil";
 import Wiadomosci from "./pages/Wiadomosci";
+import Info from "./pages/Info";
+import Admin from "./pages/Admin";
 
 const initialHash = window.location.hash;
 
@@ -45,6 +47,8 @@ export default function App() {
         <Route path="/reset-password" component={ResetPassword} />
         <Route path="/profil" component={Profil} />
         <Route path="/wiadomosci" component={Wiadomosci} />
+        <Route path="/info" component={Info} />
+        <Route path="/admin" component={Admin} />
         <Route>
           <div style={{ padding: 40, textAlign: "center", color: "#787878" }}>404 – Nie znaleziono</div>
         </Route>
