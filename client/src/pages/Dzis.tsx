@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "../lib/queryClient";
 import { useAuth } from "../hooks/use-auth";
@@ -97,7 +97,6 @@ function BizChat() {
   const [content, setContent] = useState("");
   const [sendError, setSendError] = useState("");
   const { isAuthenticated, isAdmin } = useAuth();
-  const endRef = useRef<HTMLDivElement>(null);
 
   const { data: messages = [] } = useQuery<ShoutboxMessage[]>({
     queryKey: ["/api/shoutbox"],
@@ -139,14 +138,6 @@ function BizChat() {
     },
   });
 
-  const prevLengthRef = useRef(0);
-  useEffect(() => {
-    const len = messages.length;
-    if (prevLengthRef.current > 0 && len > prevLengthRef.current) {
-      endRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-    prevLengthRef.current = len;
-  }, [messages]);
 
   const handleSend = () => {
     const t = content.trim();
@@ -184,8 +175,19 @@ function BizChat() {
         </div>
       )}
 
+      <div style={{ borderBottom: `1px solid ${B.border}`, padding: "10px 14px", display: "flex", gap: 8 }}>
+        <input value={content} onChange={e => setContent(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSend()}
+          placeholder={isAuthenticated ? "Napisz wiadomość..." : "Zaloguj się, aby pisać"}
+          disabled={!isAuthenticated || tab !== 0}
+          style={{ flex: 1, background: B.grayLight, border: "none", borderRadius: 24, padding: "11px 18px", fontSize: 14, outline: "none", color: B.ink, fontFamily: "inherit" }} />
+        <button onClick={handleSend} disabled={!isAuthenticated || !content.trim() || tab !== 0}
+          style={{ width: 44, height: 44, borderRadius: "50%", background: B.orange, border: "none", color: "white", fontSize: 18, cursor: "pointer", flexShrink: 0, opacity: (!isAuthenticated || !content.trim()) ? 0.5 : 1 }}>
+          ↑
+        </button>
+      </div>
+      {sendError && <div style={{ padding: "6px 14px", fontSize: 12, color: "#E53E3E", borderBottom: `1px solid ${B.border}` }}>{sendError}</div>}
       <div style={{ padding: 14, display: "flex", flexDirection: "column" as const, gap: 10, minHeight: 160, maxHeight: 260, overflowY: "auto" as const }}>
-        {tab === 0 ? messages.slice(-20).map((msg) => (
+        {tab === 0 ? [...messages].slice(-20).reverse().map((msg) => (
           <div key={msg.id} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
             <div style={{ width: 32, height: 32, borderRadius: 10, background: B.grayLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
               {(msg.username || "?")[0].toUpperCase()}
@@ -214,18 +216,6 @@ function BizChat() {
         )) : (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flex: 1, color: B.gray, fontSize: 13 }}>Wkrótce dostępne…</div>
         )}
-        <div ref={endRef} />
-      </div>
-      {sendError && <div style={{ padding: "6px 14px", fontSize: 12, color: "#E53E3E", borderTop: `1px solid ${B.border}` }}>{sendError}</div>}
-      <div style={{ borderTop: `1px solid ${B.border}`, padding: "10px 14px", display: "flex", gap: 8 }}>
-        <input value={content} onChange={e => setContent(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSend()}
-          placeholder={isAuthenticated ? "Napisz wiadomość..." : "Zaloguj się, aby pisać"}
-          disabled={!isAuthenticated || tab !== 0}
-          style={{ flex: 1, background: B.grayLight, border: "none", borderRadius: 24, padding: "11px 18px", fontSize: 14, outline: "none", color: B.ink, fontFamily: "inherit" }} />
-        <button onClick={handleSend} disabled={!isAuthenticated || !content.trim() || tab !== 0}
-          style={{ width: 44, height: 44, borderRadius: "50%", background: B.orange, border: "none", color: "white", fontSize: 18, cursor: "pointer", flexShrink: 0, opacity: (!isAuthenticated || !content.trim()) ? 0.5 : 1 }}>
-          ↑
-        </button>
       </div>
     </div>
   );
