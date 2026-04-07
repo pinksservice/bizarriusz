@@ -31,24 +31,29 @@ function formatDate(dateStr: string) {
 }
 
 export default function Repertuar() {
-  const today = new Date().getDay();
-  const isWeekend = today === 5 || today === 6;
+  const todayDow = new Date().getDay();
+  const isWeekend = todayDow === 5 || todayDow === 6;
   const [events, setEvents] = useState<any[]>([]);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     getBizarriuszEvents().then(setEvents);
   }, []);
 
+  const todayStr = new Date().toISOString().split("T")[0];
+  const visibleEvents = expanded ? events : events.slice(0, 7);
+  const hasMore = events.length > 7;
+
   return (
     <div style={{ padding: 16 }}>
 
-      {/* Nadchodzące imprezy specjalne */}
+      {/* Nadchodzące imprezy */}
       {events.length > 0 && (
         <div style={{ marginBottom: 28 }}>
           <h2 style={{ fontSize: 18, fontWeight: 800, color: B.ink, marginBottom: 12 }}>📅 Nadchodzące imprezy</h2>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {events.map(ev => {
-              const isToday = ev.event_date === new Date().toISOString().split("T")[0];
+            {visibleEvents.map(ev => {
+              const isToday = ev.event_date === todayStr;
               return (
                 <div
                   key={ev.id}
@@ -79,34 +84,23 @@ export default function Repertuar() {
               );
             })}
           </div>
+
+          {hasMore && (
+            <button
+              onClick={() => setExpanded(e => !e)}
+              style={{
+                marginTop: 10, width: "100%", padding: "12px 0",
+                borderRadius: 14, border: `1.5px solid ${B.border}`,
+                background: "transparent", color: B.gray,
+                fontFamily: "inherit", fontSize: 13, fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              {expanded ? "Zwiń ▲" : `Więcej (${events.length - 7}) ▼`}
+            </button>
+          )}
         </div>
       )}
-
-      {/* Tygodniowy rozkład */}
-      <h2 style={{ fontSize: 18, fontWeight: 800, color: B.ink, marginBottom: 12 }}>🗓️ Rozkład tygodniowy</h2>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 28 }}>
-        {WEEK.map(({ short, name, desc, hours, price, day }) => {
-          const isToday = day === today;
-          return (
-            <div
-              key={day}
-              style={{ background: isToday ? B.orange : B.card, border: isToday ? "none" : `1.5px solid ${B.border}`, borderRadius: 18, padding: "16px 20px", display: "grid", gridTemplateColumns: "60px 1fr auto", alignItems: "center", gap: 12 }}
-            >
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: isToday ? "rgba(255,255,255,.7)" : B.gray }}>
-                {short}{isToday ? " ●" : ""}
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 2, color: isToday ? "white" : B.ink }}>{name}</div>
-                <div style={{ fontSize: 12, color: isToday ? "rgba(255,255,255,.7)" : B.gray }}>{desc}</div>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: isToday ? "white" : B.ink }}>{hours}</div>
-                <div style={{ fontSize: 12, color: isToday ? "rgba(255,255,255,.85)" : B.orange, fontWeight: 600 }}>{price}</div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
 
       {/* Cennik */}
       <div style={{ marginBottom: 12 }}>
