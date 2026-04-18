@@ -174,7 +174,6 @@ export function BizLayout({ children }: { children: ReactNode }) {
           .biz-content {
             margin-left: 220px;
             padding-bottom: 0;
-            max-width: 720px;
           }
         }
       `}</style>
