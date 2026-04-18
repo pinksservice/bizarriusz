@@ -139,20 +139,25 @@ export function BizLayout({ children }: { children: ReactNode }) {
 
         /* ── DESKTOP ── */
         @media (min-width: 768px) {
+          .biz-root {
+            display: flex;
+            align-items: flex-start;
+          }
           .biz-sidebar {
             display: flex;
             flex-direction: column;
-            position: fixed;
+            position: sticky;
             top: 0;
-            left: 0;
-            bottom: 0;
+            height: 100dvh;
             width: 220px;
+            flex-shrink: 0;
             background: rgba(255,254,249,.96);
             backdrop-filter: blur(20px);
             border-right: 1px solid ${B.border};
             padding: 28px 16px 24px;
             z-index: 100;
             gap: 4px;
+            overflow-y: auto;
           }
           .biz-sidebar-logo {
             font-size: 22px;
@@ -172,7 +177,8 @@ export function BizLayout({ children }: { children: ReactNode }) {
           .biz-topbar { display: none; }
           .biz-bottom-nav { display: none; }
           .biz-content {
-            margin-left: 220px;
+            flex: 1;
+            min-width: 0;
             padding-bottom: 0;
           }
         }
