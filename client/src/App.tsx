@@ -23,12 +23,15 @@ function AuthHandler() {
       setLocation("/reset-password");
       return;
     }
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_UP") {
-        setLocation("/profil");
-      }
-    });
-    return () => subscription.unsubscribe();
+    if (initialHash.includes("type=signup")) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        if (event === "SIGNED_IN") {
+          setLocation("/profil");
+          subscription.unsubscribe();
+        }
+      });
+      return () => subscription.unsubscribe();
+    }
   }, [setLocation]);
   return null;
 }
