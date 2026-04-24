@@ -202,7 +202,7 @@ function BizChat() {
               </div>
             )}
           </div>
-        )}
+        ))}
       </div>
     </div>
   );
