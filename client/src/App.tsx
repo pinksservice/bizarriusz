@@ -23,15 +23,18 @@ function AuthHandler() {
       setLocation("/reset-password");
       return;
     }
-    if (initialHash.includes("type=signup")) {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-        if (event === "SIGNED_IN") {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN") {
+        const meta = session?.user?.user_metadata || {};
+        const profileIncomplete = !meta.display_name && !meta.full_name && !meta.name;
+        if (profileIncomplete) {
+          // Nowy użytkownik lub ktoś bez uzupełnionego profilu — kieruj na profil
           setLocation("/profil");
-          subscription.unsubscribe();
         }
-      });
-      return () => subscription.unsubscribe();
-    }
+        subscription.unsubscribe();
+      }
+    });
+    return () => subscription.unsubscribe();
   }, [setLocation]);
   return null;
 }
