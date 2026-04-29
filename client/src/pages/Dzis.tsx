@@ -98,6 +98,11 @@ function BizChat() {
 
   const { data: messages = [] } = useQuery<ShoutboxMessage[]>({
     queryKey: ["/api/shoutbox"],
+    queryFn: async () => {
+      const res = await fetch("/api/shoutbox");
+      if (!res.ok) return [];
+      return res.json();
+    },
     refetchInterval: 3000,
     staleTime: 0,
   });
@@ -175,6 +180,12 @@ function BizChat() {
         </button>
       </div>
       {sendError && <div style={{ padding: "6px 14px", fontSize: 12, color: "#E53E3E", borderBottom: `1px solid ${B.border}` }}>{sendError}</div>}
+      {!isAuthenticated && (
+        <div style={{ padding: "8px 14px", borderBottom: `1px solid ${B.border}`, background: B.orangeSoft, display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 13, color: B.gray }}>Aby pisac, musisz sie</span>
+          <a href="/login" style={{ fontSize: 13, fontWeight: 700, color: B.orange, textDecoration: "none" }}>zalogowac →</a>
+        </div>
+      )}
       <div style={{ padding: 14, display: "flex", flexDirection: "column" as const, gap: 10, minHeight: 160, maxHeight: 260, overflowY: "auto" as const }}>
         {[...messages].slice(-20).reverse().map((msg) => (
           <div key={msg.id} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
