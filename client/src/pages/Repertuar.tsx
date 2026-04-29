@@ -2,6 +2,22 @@ import { useState, useEffect } from "react";
 import { B } from "../layout/BizLayout";
 import { getBizarriuszEvents } from "../lib/extrafun";
 
+// Opisy imprez — używane w liście eventów jako rozwijane szczegóły
+const EVENT_DESCRIPTIONS: Record<string, string> = {
+  "Free Sex":                 "Bez zasad, bez dress code'u, bez oczekiwań. Tydzień zaczyna się tu.",
+  "Sex Grupowy":              "Więcej znaczy lepiej. Wspólna zabawa bez granic i bez wstydu.",
+  "Naga Środa":               "Zostaw ubranie w szatni. Na sali liczy się tylko skóra.",
+  "Czwartkowy Gang Bang":     "Dla tych, którzy lubią być w centrum uwagi. Albo ją dawać.",
+  "Sex Party":                "Największa impreza tygodnia. Zaczyna się późno, kończy jeszcze później.",
+  "Darkroom dla Panów":       "Ciemno. Anonimowo. Bez słów.",
+  "Nagi Darkroom dla Panów":  "Ciemno, nago, bez kompromisów. Tylko dla panów, tylko na własnych zasadach.",
+  "Majówka":                  "Długi weekend bez planu. Bez kontroli. Bez zbędnych pytań.",
+  "Gloryhole":                "Anonimowa przyjemność, tajemnicza atmosfera i brak ograniczeń. Noc, którą zapamiętasz bez twarzy.",
+  "Muzyczne Love Story":      "Największe muzyczne przeboje idealne do zabawy.",
+  "Incognito Party":          "Wolisz zachować pełną anonimowość? Możesz przyjść w masce.",
+  "Darkroom Party":           "Przygaszamy światła. Ciemniej jest przyjemniej.",
+};
+
 // Hardcoded special events — soboty maja 2026 + pełny kalendarz
 const MAY_2026_EVENTS = [
   { id:"m1",  event_date:"2026-05-01", event_name:"Sex Party",             description:"Największa impreza tygodnia",                                                    start_time:"20:00", end_time:"03:00", price:"70 zł", featured:false },
@@ -86,6 +102,7 @@ export default function Repertuar() {
   const todayStr = new Date().toISOString().split("T")[0];
   const visibleEvents = expanded ? events : events.slice(0, 7);
   const hasMore = events.length > 7;
+  const [openEvent, setOpenEvent] = useState<string | null>(null);
 
   return (
     <div style={{ padding: 16 }}>
@@ -97,31 +114,43 @@ export default function Repertuar() {
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {visibleEvents.map(ev => {
               const isToday = ev.event_date === todayStr;
+              const desc = EVENT_DESCRIPTIONS[ev.event_name];
+              const isOpen = openEvent === String(ev.id);
               return (
                 <div
                   key={ev.id}
+                  onClick={() => desc && setOpenEvent(isOpen ? null : String(ev.id))}
                   style={{
                     background: isToday ? B.orange : B.card,
                     border: isToday ? "none" : `1.5px solid ${ev.featured ? B.orange : B.border}`,
                     borderRadius: 16,
                     padding: "14px 18px",
-                    display: "grid",
-                    gridTemplateColumns: "1fr auto",
-                    alignItems: "center",
-                    gap: 12,
+                    cursor: desc ? "pointer" : "default",
                   }}
                 >
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: isToday ? "white" : B.ink }}>{ev.event_name}</div>
-                    <div style={{ fontSize: 12, color: isToday ? "rgba(255,255,255,.75)" : B.gray, marginTop: 2 }}>
-                      {formatDate(ev.event_date)}
-                      {ev.start_time && ` · ${ev.start_time}`}{ev.end_time && `–${ev.end_time}`}
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: isToday ? "white" : B.ink }}>{ev.event_name}</div>
+                      <div style={{ fontSize: 12, color: isToday ? "rgba(255,255,255,.75)" : B.gray, marginTop: 2 }}>
+                        {formatDate(ev.event_date)}
+                        {ev.start_time && ` · ${ev.start_time}`}{ev.end_time && `–${ev.end_time}`}
+                      </div>
                     </div>
-                  </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   {ev.price && (
                     <span style={{ fontWeight: 700, fontSize: 13, color: isToday ? "white" : B.orange, whiteSpace: "nowrap" }}>
                       {ev.price}
                     </span>
+                  )}
+                      {desc && (
+                        <span style={{ fontSize: 16, color: isToday ? "rgba(255,255,255,.7)" : B.gray, transition: "transform .2s", display: "inline-block", transform: isOpen ? "rotate(180deg)" : "none" }}>›</span>
+                      )}
+                    </div>
+                  </div>
+                  {isOpen && desc && (
+                    <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${isToday ? "rgba(255,255,255,.2)" : B.border}`, fontSize: 13, color: isToday ? "rgba(255,255,255,.85)" : B.gray, lineHeight: 1.6 }}>
+                      {desc}
+                    </div>
                   )}
                 </div>
               );
