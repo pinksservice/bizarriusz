@@ -2,6 +2,41 @@ import { useState, useEffect } from "react";
 import { B } from "../layout/BizLayout";
 import { getBizarriuszEvents } from "../lib/extrafun";
 
+// Hardcoded special events — soboty maja 2026 + pełny kalendarz
+const MAY_2026_EVENTS = [
+  { id:"m1",  event_date:"2026-05-01", event_name:"Sex Party",             description:"Największa impreza tygodnia",                                                    start_time:"20:00", end_time:"03:00", price:"70 zł", featured:false },
+  { id:"m2",  event_date:"2026-05-02", event_name:"Majówka",               description:"Długi weekend bez planu. Bez kontroli. Bez zbędnych pytań.",                    start_time:"20:00", end_time:"03:00", price:"70 zł", featured:true  },
+  { id:"m3",  event_date:"2026-05-03", event_name:"Darkroom dla Panów",    description:"Niedziela — darkroom",                                                           start_time:"14:00", end_time:"23:00", price:"40 zł", featured:false },
+  { id:"m4",  event_date:"2026-05-04", event_name:"Free Sex",              description:"Wejście dla wszystkich",                                                         start_time:"14:00", end_time:"23:00", price:"40 zł", featured:false },
+  { id:"m5",  event_date:"2026-05-05", event_name:"Sex Grupowy",           description:"Impreza grupowa",                                                                start_time:"14:00", end_time:"23:00", price:"40 zł", featured:false },
+  { id:"m6",  event_date:"2026-05-06", event_name:"Naga Środa",            description:"Impreza nagości",                                                                start_time:"12:00", end_time:"23:00", price:"40 zł", featured:false },
+  { id:"m7",  event_date:"2026-05-07", event_name:"Czwartkowy Gang Bang",  description:"Impreza grupowa",                                                                start_time:"14:00", end_time:"23:00", price:"40 zł", featured:false },
+  { id:"m8",  event_date:"2026-05-08", event_name:"Sex Party",             description:"Największa impreza tygodnia",                                                    start_time:"20:00", end_time:"03:00", price:"70 zł", featured:false },
+  { id:"m9",  event_date:"2026-05-09", event_name:"Gloryhole",             description:"Anonimowa przyjemność, tajemnicza atmosfera i brak ograniczeń. Noc, którą zapamiętasz bez twarzy.", start_time:"20:00", end_time:"03:00", price:"70 zł", featured:true  },
+  { id:"m10", event_date:"2026-05-10", event_name:"Nagi Darkroom dla Panów", description:"2. niedziela miesiąca",                                                        start_time:"14:00", end_time:"23:00", price:"40 zł", featured:false },
+  { id:"m11", event_date:"2026-05-11", event_name:"Free Sex",              description:"Wejście dla wszystkich",                                                         start_time:"14:00", end_time:"23:00", price:"40 zł", featured:false },
+  { id:"m12", event_date:"2026-05-12", event_name:"Sex Grupowy",           description:"Impreza grupowa",                                                                start_time:"14:00", end_time:"23:00", price:"40 zł", featured:false },
+  { id:"m13", event_date:"2026-05-13", event_name:"Naga Środa",            description:"Impreza nagości",                                                                start_time:"12:00", end_time:"23:00", price:"40 zł", featured:false },
+  { id:"m14", event_date:"2026-05-14", event_name:"Czwartkowy Gang Bang",  description:"Impreza grupowa",                                                                start_time:"14:00", end_time:"23:00", price:"40 zł", featured:false },
+  { id:"m15", event_date:"2026-05-15", event_name:"Sex Party",             description:"Największa impreza tygodnia",                                                    start_time:"20:00", end_time:"03:00", price:"70 zł", featured:false },
+  { id:"m16", event_date:"2026-05-16", event_name:"Muzyczne Love Story",   description:"Największe muzyczne przeboje idealne do zabawy.",                               start_time:"20:00", end_time:"03:00", price:"70 zł", featured:true  },
+  { id:"m17", event_date:"2026-05-17", event_name:"Darkroom dla Panów",    description:"Niedziela — darkroom",                                                           start_time:"14:00", end_time:"23:00", price:"40 zł", featured:false },
+  { id:"m18", event_date:"2026-05-18", event_name:"Free Sex",              description:"Wejście dla wszystkich",                                                         start_time:"14:00", end_time:"23:00", price:"40 zł", featured:false },
+  { id:"m19", event_date:"2026-05-19", event_name:"Sex Grupowy",           description:"Impreza grupowa",                                                                start_time:"14:00", end_time:"23:00", price:"40 zł", featured:false },
+  { id:"m20", event_date:"2026-05-20", event_name:"Naga Środa",            description:"Impreza nagości",                                                                start_time:"12:00", end_time:"23:00", price:"40 zł", featured:false },
+  { id:"m21", event_date:"2026-05-21", event_name:"Czwartkowy Gang Bang",  description:"Impreza grupowa",                                                                start_time:"14:00", end_time:"23:00", price:"40 zł", featured:false },
+  { id:"m22", event_date:"2026-05-22", event_name:"Sex Party",             description:"Największa impreza tygodnia",                                                    start_time:"20:00", end_time:"03:00", price:"70 zł", featured:false },
+  { id:"m23", event_date:"2026-05-23", event_name:"Incognito Party",       description:"Wolisz zachować pełną anonimowość? Możesz przyjść w masce.",                    start_time:"20:00", end_time:"03:00", price:"70 zł", featured:true  },
+  { id:"m24", event_date:"2026-05-24", event_name:"Darkroom dla Panów",    description:"Niedziela — darkroom",                                                           start_time:"14:00", end_time:"23:00", price:"40 zł", featured:false },
+  { id:"m25", event_date:"2026-05-25", event_name:"Free Sex",              description:"Wejście dla wszystkich",                                                         start_time:"14:00", end_time:"23:00", price:"40 zł", featured:false },
+  { id:"m26", event_date:"2026-05-26", event_name:"Sex Grupowy",           description:"Impreza grupowa",                                                                start_time:"14:00", end_time:"23:00", price:"40 zł", featured:false },
+  { id:"m27", event_date:"2026-05-27", event_name:"Naga Środa",            description:"Impreza nagości",                                                                start_time:"12:00", end_time:"23:00", price:"40 zł", featured:false },
+  { id:"m28", event_date:"2026-05-28", event_name:"Czwartkowy Gang Bang",  description:"Impreza grupowa",                                                                start_time:"14:00", end_time:"23:00", price:"40 zł", featured:false },
+  { id:"m29", event_date:"2026-05-29", event_name:"Sex Party",             description:"Największa impreza tygodnia",                                                    start_time:"20:00", end_time:"03:00", price:"70 zł", featured:false },
+  { id:"m30", event_date:"2026-05-30", event_name:"Darkroom Party",        description:"Przygaszamy światła. Ciemniej jest przyjemniej.",                               start_time:"20:00", end_time:"03:00", price:"70 zł", featured:true  },
+  { id:"m31", event_date:"2026-05-31", event_name:"Nagi Darkroom dla Panów", description:"Ostatnia niedziela miesiąca",                                                 start_time:"14:00", end_time:"23:00", price:"40 zł", featured:false },
+];
+
 const WEEK = [
   { short: "Pon", name: "Free Sex", desc: "Wejście dla wszystkich", hours: "14:00–23:00", price: "40 zł", day: 1 },
   { short: "Wt", name: "Sex Grupowy", desc: "Impreza grupowa", hours: "14:00–23:00", price: "40 zł", day: 2 },
@@ -37,7 +72,15 @@ export default function Repertuar() {
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
-    getBizarriuszEvents().then(setEvents);
+    getBizarriuszEvents().then(dbEvents => {
+      const today = new Date().toISOString().split("T")[0];
+      const filtered = dbEvents.filter((e: any) => !e.event_date.startsWith("2026-05-"));
+      const mayFuture = MAY_2026_EVENTS.filter(e => e.event_date >= today);
+      const merged = [...filtered, ...mayFuture].sort((a: any, b: any) =>
+        a.event_date.localeCompare(b.event_date)
+      );
+      setEvents(merged);
+    });
   }, []);
 
   const todayStr = new Date().toISOString().split("T")[0];
