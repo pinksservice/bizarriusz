@@ -7,13 +7,13 @@ import type { ShoutboxMessage } from "@shared/schema";
 
 const DAYS = ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"];
 const SCHEDULE: Record<number, { name: string; desc: string; hours: string; price: string; ladies?: boolean }> = {
-  1: { name: "Free Sex", desc: "Wejście dla wszystkich", hours: "14:00–23:00", price: "40 zł" },
-  2: { name: "Sex Grupowy", desc: "Impreza grupowa", hours: "14:00–23:00", price: "40 zł" },
-  3: { name: "Naked", desc: "Impreza nagości", hours: "12:00–23:00", price: "40 zł" },
-  4: { name: "Gang Bang", desc: "Impreza grupowa", hours: "14:00–23:00", price: "40 zł" },
-  5: { name: "Sex Party", desc: "Największa impreza tygodnia", hours: "20:00–3:00", price: "70 zł", ladies: true },
-  6: { name: "Impreza Specjalna", desc: "Temat zmienia się co tydzień", hours: "20:00–3:00", price: "70 zł" },
-  0: { name: "Darkroom LGBT", desc: "Nagi męski darkroom", hours: "14:00–23:00", price: "40 zł" },
+  1: { name: "Free Sex",              desc: "Bez zasad, bez dress code\'u, bez oczekiwań. Tydzień zaczyna się tu.",                          hours: "14:00–23:00", price: "40 zł" },
+  2: { name: "Sex Grupowy",           desc: "Więcej znaczy lepiej. Wspólna zabawa bez granic i bez wstydu.",                                   hours: "14:00–23:00", price: "40 zł" },
+  3: { name: "Naga Środa",            desc: "Zostaw ubranie w szatni. Na sali liczy się tylko skóra.",                                        hours: "12:00–23:00", price: "40 zł" },
+  4: { name: "Czwartkowy Gang Bang",  desc: "Dla tych, którzy lubią być w centrum uwagi. Albo ją dawać.",                                     hours: "14:00–23:00", price: "40 zł" },
+  5: { name: "Sex Party",             desc: "Największa impreza tygodnia. Zaczyna się późno, kończy jeszcze później.",                        hours: "20:00–3:00",  price: "70 zł", ladies: true },
+  6: { name: "Impreza Specjalna",     desc: "Temat zmienia się co tydzień. Sprawdź repertuar.",                                               hours: "20:00–3:00",  price: "70 zł" },
+  0: { name: "Darkroom dla Panów",    desc: "Ciemno. Anonimowo. Bez słów.",                                                                   hours: "14:00–23:00", price: "40 zł" },
 };
 
 
