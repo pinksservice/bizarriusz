@@ -30,7 +30,7 @@ function formatTime(dateStr: string | Date) {
   return d.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" });
 }
 
-export default function Wiadomosci() {
+export default function Wiadomosci({ embed = false }: { embed?: boolean }) {
   const { isAuthenticated, user } = useAuth();
   const [, navigate] = useLocation();
   const qc = useQueryClient();
@@ -150,7 +150,7 @@ export default function Wiadomosci() {
     prevLengthRef.current = 0;
     qc.invalidateQueries({ queryKey: ["/api/messages"] });
     // Clear URL params
-    navigate("/wiadomosci");
+    navigate(embed ? "/l99" : "/wiadomosci");
   };
 
   if (!isAuthenticated) {
@@ -173,7 +173,7 @@ export default function Wiadomosci() {
   // Conversation view
   if (selectedPartnerId) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", height: "calc(100dvh - 58px - env(safe-area-inset-bottom) - 56px)", maxWidth: 520, margin: "0 auto" }}>
+      <div style={{ display: "flex", flexDirection: "column", height: embed ? "100dvh" : "calc(100dvh - 58px - env(safe-area-inset-bottom) - 56px)", maxWidth: 520, margin: "0 auto" }}>
         {/* Profile modal */}
         {profileUserId && profileData && (
           <div style={{ position: "fixed", inset: 0, zIndex: 1300, background: "rgba(0,0,0,.5)", display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setProfileUserId(null)}>

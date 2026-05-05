@@ -41,24 +41,38 @@ function AuthHandler() {
 
 export default function App() {
   return (
-    <BizLayout>
-      <AuthHandler />
-      <Switch>
-        <Route path="/" component={Dzis} />
-        <Route path="/repertuar" component={Repertuar} />
-        <Route path="/galeria" component={Galeria} />
-        <Route path="/grupy" component={Grupy} />
-        <Route path="/ogloszenia" component={Ogloszenia} />
-        <Route path="/login" component={Login} />
-        <Route path="/reset-password" component={ResetPassword} />
-        <Route path="/profil" component={Profil} />
-        <Route path="/wiadomosci" component={Wiadomosci} />
-        <Route path="/info" component={Info} />
-        <Route path="/admin" component={Admin} />
-        <Route>
-          <div style={{ padding: 40, textAlign: "center", color: "#787878" }}>404 – Nie znaleziono</div>
-        </Route>
-      </Switch>
-    </BizLayout>
+    <Switch>
+      <Route path="/l99">
+        {() => (
+          <>
+            <AuthHandler />
+            <Wiadomosci embed />
+          </>
+        )}
+      </Route>
+      <Route>
+        {() => (
+          <BizLayout>
+            <AuthHandler />
+            <Switch>
+              <Route path="/" component={Dzis} />
+              <Route path="/repertuar" component={Repertuar} />
+              <Route path="/galeria" component={Galeria} />
+              <Route path="/grupy" component={Grupy} />
+              <Route path="/ogloszenia" component={Ogloszenia} />
+              <Route path="/login" component={Login} />
+              <Route path="/reset-password" component={ResetPassword} />
+              <Route path="/profil" component={Profil} />
+              <Route path="/wiadomosci" component={Wiadomosci} />
+              <Route path="/info" component={Info} />
+              <Route path="/admin" component={Admin} />
+              <Route>
+                <div style={{ padding: 40, textAlign: "center", color: "#787878" }}>404 – Nie znaleziono</div>
+              </Route>
+            </Switch>
+          </BizLayout>
+        )}
+      </Route>
+    </Switch>
   );
 }
