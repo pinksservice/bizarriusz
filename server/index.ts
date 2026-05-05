@@ -13,7 +13,7 @@ app.use(express.json());
 
 // Allow embedding in iframe from Wix / bizarriusz.pl
 app.use((_req, res, next) => {
-  res.setHeader("Content-Security-Policy", "frame-ancestors 'self' https://www.bizarriusz.pl https://*.wixsite.com https://*.wix.com");
+  res.setHeader("Content-Security-Policy", "frame-ancestors *");
   next();
 });
 
