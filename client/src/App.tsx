@@ -13,6 +13,7 @@ import Profil from "./pages/Profil";
 import Wiadomosci from "./pages/Wiadomosci";
 import Info from "./pages/Info";
 import Admin from "./pages/Admin";
+import ShoutboxWidget from "./pages/ShoutboxWidget";
 
 const initialHash = window.location.hash;
 
@@ -49,6 +50,9 @@ export default function App() {
             <Wiadomosci embed />
           </>
         )}
+      </Route>
+      <Route path="/widget">
+        {() => <ShoutboxWidget />}
       </Route>
       <Route>
         {() => (
