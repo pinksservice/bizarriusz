@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { db } from "./db.js";
-import { shoutboxMessages, ads, groupMemberships, privateMessages, userGallery, pushSubscriptions } from "../shared/schema.js";
+import { shoutboxMessages, ads, groupMemberships, privateMessages, userGallery, pushSubscriptions, bizGroups, groupActivity } from "../shared/schema.js";
 import { desc, eq, and, sql, or } from "drizzle-orm";
 import { isAuthenticated, isAdmin, isAdminEmail, supabaseAdmin } from "./auth.js";
 import webpush from "web-push";
@@ -157,8 +157,25 @@ export function registerRoutes(app: Express) {
   app.post("/api/groups/:slug/join", isAuthenticated, async (req: any, res: Response) => {
     try {
       const { slug } = req.params;
-      await db.insert(groupMemberships).values({ userId: req.user.id, groupSlug: slug })
-        .onConflictDoNothing();
+      const result = await db.insert(groupMemberships).values({ userId: req.user.id, groupSlug: slug })
+        .onConflictDoNothing().returning();
+
+      if (result.length > 0) {
+        await db.update(bizGroups).set({ memberCount: sql`member_count + 1` }).where(eq(bizGroups.slug, slug));
+
+        let username = req.user.email?.split("@")[0] || "Anonim";
+        let groupName = slug;
+        try {
+          const { data: { user: su } } = await supabaseAdmin.auth.admin.getUserById(req.user.id);
+          const m = su?.user_metadata || {};
+          username = m.full_name || m.name || username;
+          const [g] = await db.select({ name: bizGroups.name }).from(bizGroups).where(eq(bizGroups.slug, slug)).limit(1);
+          if (g) groupName = g.name;
+        } catch (_) {}
+
+        await db.insert(groupActivity).values({ groupSlug: slug, groupName, userId: req.user.id, username, type: "joined" });
+      }
+
       res.json({ ok: true });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
@@ -168,8 +185,14 @@ export function registerRoutes(app: Express) {
   app.delete("/api/groups/:slug/leave", isAuthenticated, async (req: any, res: Response) => {
     try {
       const { slug } = req.params;
-      await db.delete(groupMemberships)
-        .where(and(eq(groupMemberships.userId, req.user.id), eq(groupMemberships.groupSlug, slug)));
+      const deleted = await db.delete(groupMemberships)
+        .where(and(eq(groupMemberships.userId, req.user.id), eq(groupMemberships.groupSlug, slug)))
+        .returning();
+
+      if (deleted.length > 0) {
+        await db.update(bizGroups).set({ memberCount: sql`greatest(member_count - 1, 0)` }).where(eq(bizGroups.slug, slug));
+      }
+
       res.json({ ok: true });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
@@ -219,7 +242,93 @@ export function registerRoutes(app: Express) {
         groupSlug: slug,
       }).returning();
 
+      try {
+        const [g] = await db.select({ name: bizGroups.name }).from(bizGroups).where(eq(bizGroups.slug, slug)).limit(1);
+        const groupName = g?.name || slug;
+        await db.insert(groupActivity).values({
+          groupSlug: slug,
+          groupName,
+          userId: req.user.id,
+          username,
+          type: "message",
+          payload: content.trim().slice(0, 100),
+        });
+      } catch (_) {}
+
       res.status(201).json(msg);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // === GROUPS: LIST & CREATE ===
+  app.get("/api/groups", async (req: Request, res: Response) => {
+    try {
+      const groups = await db.select().from(bizGroups)
+        .orderBy(desc(bizGroups.memberCount), desc(bizGroups.createdAt));
+      res.json(groups);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/groups", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const { name, description, coverEmoji, isPublic } = req.body;
+      if (!name?.trim() || name.trim().length < 3) {
+        return res.status(400).json({ message: "Nazwa musi mieć co najmniej 3 znaki" });
+      }
+
+      let username = req.user.email?.split("@")[0] || "Anonim";
+      try {
+        const { data: { user: su } } = await supabaseAdmin.auth.admin.getUserById(req.user.id);
+        const m = su?.user_metadata || {};
+        username = m.full_name || m.name || username;
+      } catch (_) {}
+
+      const slug = name.trim()
+        .toLowerCase()
+        .replace(/[ąćęłńóśźż]/g, (c: string) => ({ ą:"a",ć:"c",ę:"e",ł:"l",ń:"n",ó:"o",ś:"s",ź:"z",ż:"z" }[c] ?? c))
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+        + "-" + Date.now().toString(36);
+
+      const [group] = await db.insert(bizGroups).values({
+        slug,
+        name: name.trim(),
+        description: description?.trim() || null,
+        coverEmoji: coverEmoji || "👥",
+        createdById: req.user.id,
+        createdByName: username,
+        isPublic: isPublic !== false,
+        memberCount: 1,
+      }).returning();
+
+      await db.insert(groupMemberships).values({ userId: req.user.id, groupSlug: slug }).onConflictDoNothing();
+
+      await db.insert(groupActivity).values({
+        groupSlug: slug,
+        groupName: group.name,
+        userId: req.user.id,
+        username,
+        type: "created",
+      });
+
+      res.status(201).json(group);
+    } catch (err: any) {
+      console.error("[POST /api/groups] error:", err);
+      res.status(500).json({ message: err.message, detail: err.detail ?? null });
+    }
+  });
+
+  // === ACTIVITY FEED ===
+  app.get("/api/activity", async (req: Request, res: Response) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 30, 100);
+      const items = await db.select().from(groupActivity)
+        .orderBy(desc(groupActivity.createdAt))
+        .limit(limit);
+      res.json(items);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }

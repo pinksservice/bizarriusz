@@ -124,3 +124,31 @@ export const userGallery = pgTable("user_gallery", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 export type UserGalleryPhoto = typeof userGallery.$inferSelect;
+
+// === BIZ: USER-CREATED GROUPS ===
+export const bizGroups = pgTable("biz_groups", {
+  id: serial("id").primaryKey(),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  coverEmoji: text("cover_emoji").default("👥"),
+  createdById: text("created_by_id").notNull(),
+  createdByName: text("created_by_name").notNull(),
+  isPublic: boolean("is_public").default(true),
+  memberCount: integer("member_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+export type BizGroup = typeof bizGroups.$inferSelect;
+
+export const groupActivity = pgTable("group_activity", {
+  id: serial("id").primaryKey(),
+  groupSlug: text("group_slug").notNull(),
+  groupName: text("group_name").notNull(),
+  userId: text("user_id").notNull(),
+  username: text("username").notNull(),
+  avatarUrl: text("avatar_url"),
+  type: text("type").notNull(), // "created" | "joined" | "left" | "message"
+  payload: text("payload"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+export type GroupActivity = typeof groupActivity.$inferSelect;
