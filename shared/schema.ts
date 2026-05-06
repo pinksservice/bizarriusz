@@ -147,8 +147,42 @@ export const groupActivity = pgTable("group_activity", {
   userId: text("user_id").notNull(),
   username: text("username").notNull(),
   avatarUrl: text("avatar_url"),
-  type: text("type").notNull(), // "created" | "joined" | "left" | "message"
+  type: text("type").notNull(), // "created" | "joined" | "left" | "message" | "post"
   payload: text("payload"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 export type GroupActivity = typeof groupActivity.$inferSelect;
+
+// === BIZ: GROUP POSTS ===
+export const groupPosts = pgTable("group_posts", {
+  id: serial("id").primaryKey(),
+  groupSlug: text("group_slug").notNull(),
+  groupName: text("group_name").notNull(),
+  userId: text("user_id").notNull(),
+  username: text("username").notNull(),
+  avatarUrl: text("avatar_url"),
+  content: text("content").notNull(),
+  commentCount: integer("comment_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+export type GroupPost = typeof groupPosts.$inferSelect;
+
+export const groupPostReactions = pgTable("group_post_reactions", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id").notNull(),
+  userId: text("user_id").notNull(),
+  emoji: text("emoji").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+export type GroupPostReaction = typeof groupPostReactions.$inferSelect;
+
+export const groupPostComments = pgTable("group_post_comments", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id").notNull(),
+  userId: text("user_id").notNull(),
+  username: text("username").notNull(),
+  avatarUrl: text("avatar_url"),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+export type GroupPostComment = typeof groupPostComments.$inferSelect;

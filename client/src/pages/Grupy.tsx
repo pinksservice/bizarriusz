@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "../lib/queryClient";
 import { useAuth } from "../hooks/use-auth";
 import { B } from "../layout/BizLayout";
-import type { ShoutboxMessage, BizGroup, GroupActivity } from "@shared/schema";
+import type { ShoutboxMessage, BizGroup, GroupActivity, GroupPost, GroupPostReaction, GroupPostComment } from "@shared/schema";
 
 interface GroupInfo { isMember: boolean; memberCount: number; }
 
@@ -22,6 +22,7 @@ function activityLabel(a: GroupActivity) {
     case "created": return <><b>{a.username}</b> założył grupę <b>{a.groupName}</b></>;
     case "joined":  return <><b>{a.username}</b> dołączył do <b>{a.groupName}</b></>;
     case "left":    return <><b>{a.username}</b> opuścił <b>{a.groupName}</b></>;
+    case "post":    return <><b>{a.username}</b> dodał post w <b>{a.groupName}</b>{a.payload ? `: ${a.payload.slice(0, 60)}${a.payload.length > 60 ? "…" : ""}` : ""}</>;
     case "message": return <><b>{a.username}</b> napisał w <b>{a.groupName}</b>{a.payload ? `: ${a.payload.slice(0, 60)}${a.payload.length > 60 ? "…" : ""}` : ""}</>;
     default:        return <>{a.username} — {a.groupName}</>;
   }
@@ -149,12 +150,246 @@ function GroupChat({ slug, isMember }: { slug: string; isMember: boolean }) {
   );
 }
 
+// ─── Post Comments ───────────────────────────────────────────────────────────
+
+function PostComments({ postId, groupSlug }: { postId: number; groupSlug: string }) {
+  const { user, isAuthenticated } = useAuth();
+  const qc = useQueryClient();
+  const [text, setText] = useState("");
+
+  const { data: comments = [] } = useQuery<GroupPostComment[]>({
+    queryKey: [`/api/posts/${postId}/comments`],
+    staleTime: 0,
+  });
+
+  const { data: membership } = useQuery<{ isMember: boolean; memberCount: number }>({
+    queryKey: [`/api/groups/${groupSlug}/info`],
+    staleTime: 30_000,
+  });
+
+  const addComment = useMutation({
+    mutationFn: async (content: string) => {
+      const res = await apiRequest("POST", `/api/posts/${postId}/comments`, { content });
+      return res.json() as Promise<GroupPostComment>;
+    },
+    onSuccess: (c) => {
+      qc.setQueryData<GroupPostComment[]>([`/api/posts/${postId}/comments`], (old = []) => [...old, c]);
+      qc.setQueryData<GroupPost[]>([`/api/groups/${groupSlug}/posts`], (old = []) =>
+        old.map(p => p.id === postId ? { ...p, commentCount: (p.commentCount ?? 0) + 1 } : p)
+      );
+      setText("");
+    },
+  });
+
+  return (
+    <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${B.border}` }}>
+      {comments.map(c => (
+        <div key={c.id} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+          <div style={{ width: 24, height: 24, borderRadius: 7, background: B.grayLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: B.gray, flexShrink: 0 }}>
+            {c.username?.[0]?.toUpperCase() || "?"}
+          </div>
+          <div style={{ flex: 1 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: B.gray, marginRight: 6 }}>{c.username}</span>
+            <span style={{ fontSize: 13, color: B.ink }}>{c.content}</span>
+          </div>
+        </div>
+      ))}
+      {isAuthenticated && membership?.isMember && (
+        <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+          <input
+            value={text}
+            onChange={e => setText(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && text.trim() && addComment.mutate(text.trim())}
+            placeholder="Dodaj komentarz…"
+            maxLength={500}
+            style={{ flex: 1, background: B.grayLight, border: "none", borderRadius: 16, padding: "8px 14px", fontSize: 13, outline: "none", color: B.ink, fontFamily: "inherit" }}
+          />
+          <button
+            onClick={() => text.trim() && addComment.mutate(text.trim())}
+            disabled={!text.trim() || addComment.isPending}
+            style={{ width: 34, height: 34, borderRadius: "50%", background: B.orange, border: "none", fontSize: 14, cursor: "pointer", flexShrink: 0, opacity: !text.trim() ? 0.5 : 1 }}
+          >↑</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Post Item ────────────────────────────────────────────────────────────────
+
+const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "🔥"];
+
+function PostItem({ post, groupSlug }: { post: GroupPost; groupSlug: string }) {
+  const { user, isAuthenticated } = useAuth();
+  const qc = useQueryClient();
+  const [showComments, setShowComments] = useState(false);
+
+  const { data: reactions = [] } = useQuery<GroupPostReaction[]>({
+    queryKey: [`/api/posts/${post.id}/reactions`],
+    staleTime: 10_000,
+  });
+
+  const react = useMutation({
+    mutationFn: async (emoji: string) => {
+      const res = await apiRequest("POST", `/api/posts/${post.id}/reactions`, { emoji });
+      return res.json() as Promise<GroupPostReaction[]>;
+    },
+    onSuccess: (updated) => {
+      qc.setQueryData<GroupPostReaction[]>([`/api/posts/${post.id}/reactions`], updated);
+    },
+  });
+
+  const counts: Record<string, number> = {};
+  const mine = new Set<string>();
+  reactions.forEach(r => {
+    counts[r.emoji] = (counts[r.emoji] || 0) + 1;
+    if (r.userId === (user as any)?.id) mine.add(r.emoji);
+  });
+
+  function formatTime(d: string | Date) {
+    const diff = (Date.now() - new Date(d).getTime()) / 1000;
+    if (diff < 60) return "przed chwilą";
+    if (diff < 3600) return `${Math.floor(diff / 60)} min`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)} h`;
+    return new Date(d).toLocaleDateString("pl-PL", { day: "numeric", month: "short" });
+  }
+
+  return (
+    <div style={{ background: B.card, borderRadius: 16, padding: "14px 16px", border: `1px solid ${B.border}` }}>
+      <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+        <div style={{ width: 32, height: 32, borderRadius: 10, background: B.grayLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: B.gray, flexShrink: 0 }}>
+          {post.username?.[0]?.toUpperCase() || "?"}
+        </div>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: B.ink }}>{post.username}</div>
+          <div style={{ fontSize: 11, color: B.gray }}>{formatTime(post.createdAt)}</div>
+        </div>
+      </div>
+
+      <div style={{ fontSize: 14, color: B.ink, lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word", marginBottom: 12 }}>
+        {post.content}
+      </div>
+
+      {/* Reactions */}
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+        {REACTION_EMOJIS.map(e => {
+          const count = counts[e] || 0;
+          const active = mine.has(e);
+          return (
+            <button
+              key={e}
+              onClick={() => isAuthenticated && react.mutate(e)}
+              style={{
+                display: "flex", alignItems: "center", gap: 4, padding: "4px 10px",
+                borderRadius: 20, border: `1.5px solid ${active ? B.orange : B.border}`,
+                background: active ? B.orangeSoft : B.bg,
+                cursor: isAuthenticated ? "pointer" : "default",
+                fontSize: 13, fontWeight: 700, color: B.ink,
+              }}
+            >
+              {e} {count > 0 && <span style={{ fontSize: 12, color: active ? B.orange : B.gray }}>{count}</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Comments toggle */}
+      <button
+        onClick={() => setShowComments(s => !s)}
+        style={{ fontSize: 12, color: B.gray, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}
+      >
+        💬 {post.commentCount ?? 0} {showComments ? "↑" : "komentarzy"}
+      </button>
+
+      {showComments && <PostComments postId={post.id} groupSlug={groupSlug} />}
+    </div>
+  );
+}
+
+// ─── Group Posts List ─────────────────────────────────────────────────────────
+
+function GroupPosts({ slug, isMember }: { slug: string; isMember: boolean }) {
+  const { isAuthenticated } = useAuth();
+  const qc = useQueryClient();
+  const [text, setText] = useState("");
+  const [showForm, setShowForm] = useState(false);
+
+  const { data: posts = [] } = useQuery<GroupPost[]>({
+    queryKey: [`/api/groups/${slug}/posts`],
+    refetchInterval: 15_000,
+    staleTime: 0,
+  });
+
+  const createPost = useMutation({
+    mutationFn: async (content: string) => {
+      const res = await apiRequest("POST", `/api/groups/${slug}/posts`, { content });
+      if (!res.ok) { const b = await res.json(); throw new Error(b.message); }
+      return res.json() as Promise<GroupPost>;
+    },
+    onSuccess: (p) => {
+      qc.setQueryData<GroupPost[]>([`/api/groups/${slug}/posts`], (old = []) => [p, ...old]);
+      qc.invalidateQueries({ queryKey: ["/api/activity"] });
+      setText("");
+      setShowForm(false);
+    },
+  });
+
+  return (
+    <div style={{ marginTop: 12 }}>
+      {isMember && (
+        <div style={{ marginBottom: 12 }}>
+          {showForm ? (
+            <div style={{ background: B.grayLight, borderRadius: 14, padding: 12 }}>
+              <textarea
+                value={text}
+                onChange={e => setText(e.target.value)}
+                placeholder="Co chcesz napisać?"
+                maxLength={2000}
+                rows={3}
+                autoFocus
+                style={{ width: "100%", background: "none", border: "none", fontSize: 14, color: B.ink, fontFamily: "inherit", outline: "none", resize: "none", boxSizing: "border-box" }}
+              />
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 8 }}>
+                <button onClick={() => { setShowForm(false); setText(""); }}
+                  style={{ padding: "8px 14px", borderRadius: 10, border: "none", background: B.border, color: B.gray, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}>
+                  Anuluj
+                </button>
+                <button onClick={() => text.trim() && createPost.mutate(text.trim())}
+                  disabled={!text.trim() || createPost.isPending}
+                  style={{ padding: "8px 16px", borderRadius: 10, border: "none", background: B.orange, color: "white", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", fontSize: 13, opacity: !text.trim() ? 0.5 : 1 }}>
+                  {createPost.isPending ? "…" : "Opublikuj"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => setShowForm(true)}
+              style={{ width: "100%", padding: "10px 16px", borderRadius: 14, border: `1.5px dashed ${B.border}`, background: "none", color: B.gray, fontSize: 13, cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}>
+              ✏️ Napisz post w grupie…
+            </button>
+          )}
+        </div>
+      )}
+
+      {posts.length === 0 ? (
+        <div style={{ textAlign: "center", color: B.gray, fontSize: 13, padding: "20px 0" }}>
+          {isMember ? "Brak postów — napisz pierwszy!" : "Brak postów"}
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {posts.map(p => <PostItem key={p.id} post={p} groupSlug={slug} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Group Card ──────────────────────────────────────────────────────────────
 
 function GroupCard({ group }: { group: BizGroup }) {
   const { isAuthenticated } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState<"czat" | "posty">("posty");
 
   const { data: info } = useQuery<GroupInfo>({
     queryKey: [`/api/groups/${group.slug}/info`],
@@ -211,7 +446,26 @@ function GroupCard({ group }: { group: BizGroup }) {
               {isPending ? "…" : isMember ? "Opuść grupę" : "Dołącz do grupy"}
             </button>
           )}
-          <GroupChat slug={group.slug} isMember={isMember} />
+
+          {/* Tabs */}
+          <div style={{ display: "flex", gap: 4, marginTop: 12, background: B.grayLight, borderRadius: 12, padding: 4 }}>
+            {(["posty", "czat"] as const).map(t => (
+              <button key={t} onClick={() => setTab(t)} style={{
+                flex: 1, padding: "8px 0", borderRadius: 9, border: "none", cursor: "pointer",
+                fontWeight: 700, fontSize: 13, fontFamily: "inherit",
+                background: tab === t ? B.bg : "none",
+                color: tab === t ? B.ink : B.gray,
+                boxShadow: tab === t ? "0 1px 3px rgba(0,0,0,.08)" : "none",
+              }}>
+                {t === "posty" ? "📝 Posty" : "💬 Czat"}
+              </button>
+            ))}
+          </div>
+
+          {tab === "czat"
+            ? <GroupChat slug={group.slug} isMember={isMember} />
+            : <GroupPosts slug={group.slug} isMember={isMember} />
+          }
         </div>
       )}
     </div>

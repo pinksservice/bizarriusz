@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { db } from "./db.js";
-import { shoutboxMessages, ads, groupMemberships, privateMessages, userGallery, pushSubscriptions, bizGroups, groupActivity } from "../shared/schema.js";
+import { shoutboxMessages, ads, groupMemberships, privateMessages, userGallery, pushSubscriptions, bizGroups, groupActivity, groupPosts, groupPostReactions, groupPostComments } from "../shared/schema.js";
 import { desc, eq, and, sql, or } from "drizzle-orm";
 import { isAuthenticated, isAdmin, isAdminEmail, supabaseAdmin } from "./auth.js";
 import webpush from "web-push";
@@ -256,6 +256,156 @@ export function registerRoutes(app: Express) {
       } catch (_) {}
 
       res.status(201).json(msg);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // === GROUP POSTS ===
+  app.get("/api/groups/:slug/posts", async (req: Request, res: Response) => {
+    try {
+      const { slug } = req.params;
+      const posts = await db.select().from(groupPosts)
+        .where(eq(groupPosts.groupSlug, slug))
+        .orderBy(desc(groupPosts.createdAt))
+        .limit(30);
+      res.json(posts);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/groups/:slug/posts", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const { slug } = req.params;
+      const { content } = req.body;
+      if (!content?.trim() || content.trim().length > 2000) {
+        return res.status(400).json({ message: "Treść posta: 1–2000 znaków" });
+      }
+
+      const [membership] = await db.select().from(groupMemberships)
+        .where(and(eq(groupMemberships.userId, req.user.id), eq(groupMemberships.groupSlug, slug)))
+        .limit(1);
+      if (!membership) return res.status(403).json({ message: "Musisz być członkiem grupy" });
+
+      let username = req.user.email?.split("@")[0] || "Anonim";
+      let groupName = slug;
+      try {
+        const { data: { user: su } } = await supabaseAdmin.auth.admin.getUserById(req.user.id);
+        const m = su?.user_metadata || {};
+        username = m.full_name || m.name || username;
+        const [g] = await db.select({ name: bizGroups.name }).from(bizGroups).where(eq(bizGroups.slug, slug)).limit(1);
+        if (g) groupName = g.name;
+      } catch (_) {}
+
+      const [post] = await db.insert(groupPosts).values({
+        groupSlug: slug,
+        groupName,
+        userId: req.user.id,
+        username,
+        avatarUrl: null,
+        content: content.trim(),
+        commentCount: 0,
+      }).returning();
+
+      await db.insert(groupActivity).values({
+        groupSlug: slug,
+        groupName,
+        userId: req.user.id,
+        username,
+        type: "post",
+        payload: content.trim().slice(0, 100),
+      });
+
+      res.status(201).json(post);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // === POST REACTIONS ===
+  app.post("/api/posts/:id/reactions", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const postId = parseInt(req.params.id);
+      const { emoji } = req.body;
+      if (!["👍","❤️","😂","😮","🔥"].includes(emoji)) {
+        return res.status(400).json({ message: "Nieprawidłowe emoji" });
+      }
+
+      const [existing] = await db.select().from(groupPostReactions)
+        .where(and(eq(groupPostReactions.postId, postId), eq(groupPostReactions.userId, req.user.id), eq(groupPostReactions.emoji, emoji)))
+        .limit(1);
+
+      if (existing) {
+        await db.delete(groupPostReactions).where(eq(groupPostReactions.id, existing.id));
+      } else {
+        await db.insert(groupPostReactions).values({ postId, userId: req.user.id, emoji });
+      }
+
+      const reactions = await db.select().from(groupPostReactions).where(eq(groupPostReactions.postId, postId));
+      res.json(reactions);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.get("/api/posts/:id/reactions", async (req: Request, res: Response) => {
+    try {
+      const postId = parseInt(req.params.id);
+      const reactions = await db.select().from(groupPostReactions).where(eq(groupPostReactions.postId, postId));
+      res.json(reactions);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  // === POST COMMENTS ===
+  app.get("/api/posts/:id/comments", async (req: Request, res: Response) => {
+    try {
+      const postId = parseInt(req.params.id);
+      const comments = await db.select().from(groupPostComments)
+        .where(eq(groupPostComments.postId, postId))
+        .orderBy(groupPostComments.createdAt);
+      res.json(comments);
+    } catch (err: any) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+
+  app.post("/api/posts/:id/comments", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const postId = parseInt(req.params.id);
+      const { content } = req.body;
+      if (!content?.trim() || content.trim().length > 500) {
+        return res.status(400).json({ message: "Treść: 1–500 znaków" });
+      }
+
+      const [post] = await db.select().from(groupPosts).where(eq(groupPosts.id, postId)).limit(1);
+      if (!post) return res.status(404).json({ message: "Post nie istnieje" });
+
+      const [membership] = await db.select().from(groupMemberships)
+        .where(and(eq(groupMemberships.userId, req.user.id), eq(groupMemberships.groupSlug, post.groupSlug)))
+        .limit(1);
+      if (!membership) return res.status(403).json({ message: "Musisz być członkiem grupy" });
+
+      let username = req.user.email?.split("@")[0] || "Anonim";
+      try {
+        const { data: { user: su } } = await supabaseAdmin.auth.admin.getUserById(req.user.id);
+        const m = su?.user_metadata || {};
+        username = m.full_name || m.name || username;
+      } catch (_) {}
+
+      const [comment] = await db.insert(groupPostComments).values({
+        postId,
+        userId: req.user.id,
+        username,
+        avatarUrl: null,
+        content: content.trim(),
+      }).returning();
+
+      await db.update(groupPosts).set({ commentCount: sql`comment_count + 1` }).where(eq(groupPosts.id, postId));
+
+      res.status(201).json(comment);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
