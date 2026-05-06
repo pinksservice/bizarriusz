@@ -500,11 +500,11 @@ function CreateGroupModal({ onClose, onCreated }: { onClose: () => void; onCreat
 
   return (
     <div
-      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", zIndex: 1000, display: "flex", alignItems: "flex-end", justifyContent: "center" }}
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", zIndex: 1100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}
       onClick={onClose}
     >
       <div
-        style={{ background: B.bg, borderRadius: "20px 20px 0 0", padding: 24, width: "100%", maxWidth: 480 }}
+        style={{ background: B.bg, borderRadius: "20px 20px 0 0", padding: 24, paddingBottom: "max(24px, calc(env(safe-area-inset-bottom) + 16px))", width: "100%", maxWidth: 480 }}
         onClick={e => e.stopPropagation()}
       >
         <div style={{ fontWeight: 800, fontSize: 18, color: B.ink, marginBottom: 4 }}>Nowa grupa</div>
